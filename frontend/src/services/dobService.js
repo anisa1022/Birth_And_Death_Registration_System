@@ -4,14 +4,25 @@ import axios from 'axios';
 const DOB_API_URL = 'http://localhost:5000/api/dob';
 
 // Create a new DOB record
+// export const createDobRecord = async (dobData) => {
+//   try {
+//     const response = await axios.post(DOB_API_URL, dobData, {
+//       headers: { 'Content-Type': 'application/json' },
+//     });
+//     return response.data;
+//   } catch (error) {
+//     throw error.response?.data || { message: 'Failed to create DOB record' };
+//   }
+// };
 export const createDobRecord = async (dobData) => {
   try {
-    const response = await axios.post(DOB_API_URL, dobData, {
-      headers: { 'Content-Type': 'application/json' },
+    const response = await axios.post(DOB_API_URL, dobData,{
+      headers: { "Content-Type": "application/json" },
     });
     return response.data;
   } catch (error) {
-    throw error.response?.data || { message: 'Failed to create DOB record' };
+    console.error("Error in createDobRecord service:", error.response?.data || error.message);
+    throw error.response?.data || { message: "Failed to create DOB record" };
   }
 };
 

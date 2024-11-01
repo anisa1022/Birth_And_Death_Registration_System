@@ -4,15 +4,23 @@ import District from '../models/districtsModel.js';
 // Create a new date of birth record
 export const createDobRecord = async (req, res) => {
   try {
+    console.log("Incoming request body:", req.body);
     const { fullName, image, placeOfBirth, dob, gender, materialState, address, motherName, occupation } = req.body;
+
+    const allDistricts = await District.find({});
+    console.log("Available Districts:", allDistricts.map(d => ({ id: d._id, name: d.discName })));
+
 
     const trimmedPlaceOfBirth = placeOfBirth.trim();
     const trimmedAddress = address.trim();
 
-    const placeOfBirthDistrict = await District.findOne({ discName: trimmedPlaceOfBirth });
-    const addressDistrict = await District.findOne({ discName: trimmedAddress });
+    // const placeOfBirthDistrict = await District.findOne({ discName: trimmedPlaceOfBirth });
+    // const addressDistrict = await District.findOne({ discName: trimmedAddress });
+    const placeOfBirthDistrict = await District.findOne({ _id: trimmedPlaceOfBirth });
+    const addressDistrict = await District.findOne({ _id: trimmedAddress });
 
     if (!placeOfBirthDistrict || !addressDistrict) {
+      console.log("Invalid District IDs:", { placeOfBirth, address });
       return res.status(400).json({ message: "Invalid district name(s) for placeOfBirth or address" });
     }
 
@@ -29,6 +37,9 @@ export const createDobRecord = async (req, res) => {
     const expirationDate = new Date(dateOfIssue);
     expirationDate.setFullYear(dateOfIssue.getFullYear() + 1);
 
+    if (typeof image !== 'string') {
+      return res.status(400).json({ message: 'Image must be a string' });
+    }
     const newDob = new Dob({
       dobId: newDobId,
       fullName,
@@ -95,29 +106,30 @@ export const getDobRecordById = async (req, res) => {
 };
 
 // Update a date of birth record
+// Update a date of birth record
 export const updateDobRecord = async (req, res) => {
   try {
     const { placeOfBirth, address, ...otherUpdates } = req.body;
 
-    let placeOfBirthDistrict, addressDistrict;
+    // Check if placeOfBirth is a valid district ID
     if (placeOfBirth) {
-      const trimmedPlaceOfBirth = placeOfBirth.trim();
-      placeOfBirthDistrict = await District.findOne({ discName: trimmedPlaceOfBirth });
+      const placeOfBirthDistrict = await District.findById(placeOfBirth.trim());
       if (!placeOfBirthDistrict) {
-        return res.status(400).json({ message: "Invalid district name for placeOfBirth" });
+        return res.status(400).json({ message: "Invalid district ID for placeOfBirth" });
       }
       otherUpdates.placeOfBirth = placeOfBirthDistrict._id;
     }
 
+    // Check if address is a valid district ID
     if (address) {
-      const trimmedAddress = address.trim();
-      addressDistrict = await District.findOne({ discName: trimmedAddress });
+      const addressDistrict = await District.findById(address.trim());
       if (!addressDistrict) {
-        return res.status(400).json({ message: "Invalid district name for address" });
+        return res.status(400).json({ message: "Invalid district ID for address" });
       }
       otherUpdates.address = addressDistrict._id;
     }
 
+    // Update the record in the database
     const updatedDob = await Dob.findByIdAndUpdate(req.params.id, otherUpdates, { new: true })
       .populate('placeOfBirth address', 'discName')
       .select('-__v');
@@ -133,9 +145,11 @@ export const updateDobRecord = async (req, res) => {
 
     res.status(200).json(formattedRecord);
   } catch (error) {
+    console.error("Error in updateDobRecord:", error);
     res.status(500).json({ message: error.message });
   }
 };
+
 
 // Delete a date of birth record
 export const deleteDobRecord = async (req, res) => {

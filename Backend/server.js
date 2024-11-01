@@ -4,6 +4,8 @@ import userRoutes from './routes/userRoute.js'
 import express from 'express';
 import connectDB from './config/db.js';
 import cors from 'cors';
+import bodyParser from 'body-parser';
+
 import districtRoutes from './routes/districtRoute.js'
 import dobRoutes from './routes/dobRoute.js'
 import dodRoutes from './routes/dodRoutes.js'
@@ -17,7 +19,10 @@ app.use(cors({
   origin: 'http://localhost:5173', // or '*', but be cautious with '*'
 }));
 
-app.use(express.json());
+
+app.use(express.json({ limit: '10mb' })); // Adjust size as needed
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
+
 app.use((req, res, next) => {
   console.log(`${req.method} request to ${req.url}`);
   next();
