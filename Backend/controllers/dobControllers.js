@@ -53,6 +53,7 @@ export const createDobRecord = async (req, res) => {
       dateOfIssue,
       occupation,
       expirationDate,
+      paymentStatus: 0
     });
 
     const savedDob = await newDob.save();
@@ -64,17 +65,38 @@ export const createDobRecord = async (req, res) => {
 };
 
 // Get all date of birth records
+// export const getAllDobRecords = async (req, res) => {
+//   try {
+//     const dobRecords = await Dob.find()
+//       .populate('placeOfBirth address', 'discName')  // Only get district name for readability
+//       .select('-__v');  // Exclude the `__v` field from the response
+
+//     const formattedRecords = dobRecords.map(record => ({
+//       ...record._doc,
+//       dateOfIssue: record.dateOfIssue.toISOString().split('T')[0],
+//       expirationDate: record.expirationDate.toISOString().split('T')[0],
+//       dob: record.dob.toISOString().split('T')[0]
+//     }));
+
+//     res.status(200).json(formattedRecords);
+//   } catch (error) {
+//     res.status(500).json({ message: error.message });
+//   }
+// };
+// dobController.js
+// Get all date of birth records
 export const getAllDobRecords = async (req, res) => {
   try {
     const dobRecords = await Dob.find()
-      .populate('placeOfBirth address', 'discName')  // Only get district name for readability
+      .populate('placeOfBirth', 'discName')  // Populate only `discName` for placeOfBirth
+      .populate('address', 'discName')       // Populate only `discName` for address
       .select('-__v');  // Exclude the `__v` field from the response
 
     const formattedRecords = dobRecords.map(record => ({
       ...record._doc,
       dateOfIssue: record.dateOfIssue.toISOString().split('T')[0],
       expirationDate: record.expirationDate.toISOString().split('T')[0],
-      dob: record.dob.toISOString().split('T')[0]
+      dob: record.dob.toISOString().split('T')[0],
     }));
 
     res.status(200).json(formattedRecords);

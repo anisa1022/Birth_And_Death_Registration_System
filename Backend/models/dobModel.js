@@ -49,6 +49,7 @@ const dobSchema = mongoose.Schema({
         type: Date,
         required: true,
     },
+    paymentStatus: { type: Number, default: 0 }
 },{
     timestamps: true
 });

@@ -1,20 +1,21 @@
 import mongoose from "mongoose";
 const paymentSchema = mongoose.Schema({
-    dob_id:{
+    certificate_Id:{
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Dob',
-        require: true,
-    },
-    PaymentMethod:{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'PaymentMethod',
-        require: true,
-    },
-    PaymentType:{
-        type: String,
         required: true
     },
-    phone:{
+    PaymentMethod: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Payment Method', // This matches the model name as defined in PaymentMethod schema
+        required: true,
+    },
+    
+    PaymentType: {
+        type: String,
+        enum: ['Birth Certificate', 'Death Certificate'], // Define allowed types
+        required: true
+    },
+    senderNumber:{
         type:String,
         required: true
     },

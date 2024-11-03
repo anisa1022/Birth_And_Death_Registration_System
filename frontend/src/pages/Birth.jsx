@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
-import DashboardLayout from '../components/layout';
-import { Plus, Trash2, Edit } from 'lucide-react';
-import { createDobRecord, getAllDobRecords, deleteDobRecord, updateDobRecord } from '../services/dobService';
-import { getAllDistricts } from '../services/districtService';
-
+import DashboardLayout from '../components/layout.jsx';
+import ViewRecordModal from '../components/ViewRecordModal.jsx';
+import { Plus, Trash2, Edit,Eye } from 'lucide-react';
+import { createDobRecord, getAllDobRecords, deleteDobRecord, updateDobRecord } from '../services/dobService.js';
+import { getAllDistricts } from '../services/districtService.js';
+import PaymentModal from '../components/PaymentModel.jsx';
+import { updatePaymentStatus } from '../services/paymentService.js';
 export default function BirthRegistration() {
   const [records, setRecords] = useState([]);
   const [districts, setDistricts] = useState([]);
+  const [districtMap, setDistrictMap] = useState({});
   const [formData, setFormData] = useState({
     fullName: '',
     dob: '',
@@ -21,10 +24,13 @@ export default function BirthRegistration() {
   const [imagePreview, setImagePreview] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [editingId, setEditingId] = useState(null);
-  const [isFormVisible, setIsFormVisible] = useState(false); // Track form visibility
+  const [isFormVisible, setIsFormVisible] = useState(false);
+  const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false);
+  const [selectedRecord, setSelectedRecord] = useState(null);
+  const [isViewModalVisible, setIsViewModalVisible] = useState(false); // New state for the view modal
+  const [viewRecord, setViewRecord] = useState(null); // New state to hold the record for viewing
 
   useEffect(() => {
-    // Fetch all birth records
     getAllDobRecords().then((data) => {
       setRecords(data);
       setIsLoading(false);
@@ -33,9 +39,13 @@ export default function BirthRegistration() {
       setIsLoading(false);
     });
 
-    // Fetch all districts
     getAllDistricts().then((data) => {
       setDistricts(data);
+      const districtMapping = data.reduce((acc, district) => {
+        acc[district._id] = district.discName;
+        return acc;
+      }, {});
+      setDistrictMap(districtMapping);
     }).catch((error) => {
       console.error("Error fetching districts:", error);
     });
@@ -44,8 +54,8 @@ export default function BirthRegistration() {
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setImage(file); // Store the file directly
-      setImagePreview(URL.createObjectURL(file)); // For preview
+      setImage(file);
+      setImagePreview(URL.createObjectURL(file));
     }
   };
 
@@ -54,7 +64,6 @@ export default function BirthRegistration() {
     const { fullName, dob, gender, materialState, motherName, placeOfBirth, occupation, address } = formData;
 
     try {
-      // Convert image to Base64
       let base64Image = '';
       if (image) {
         const reader = new FileReader();
@@ -74,15 +83,14 @@ export default function BirthRegistration() {
         occupation,
         address,
         image: base64Image,
+        paymentStatus: 0, // Ensure new records are set to Pending
       };
 
       if (editingId) {
-        // If editing, update the record
         await updateDobRecord(editingId, newRecord);
         setRecords(records.map((record) => (record._id === editingId ? { ...record, ...newRecord } : record)));
         setEditingId(null);
       } else {
-        // Otherwise, create a new record
         const createdRecord = await createDobRecord(newRecord);
         setRecords([...records, createdRecord]);
       }
@@ -96,7 +104,7 @@ export default function BirthRegistration() {
   const handleEditRecord = (record) => {
     setFormData({
       fullName: record.fullName,
-      dob: record.dob,
+      dob: record.dob.split("T")[0],
       gender: record.gender,
       materialState: record.materialState,
       motherName: record.motherName,
@@ -106,7 +114,7 @@ export default function BirthRegistration() {
     });
     setImagePreview(record.image);
     setEditingId(record._id);
-    setIsFormVisible(true); // Show form when editing
+    setIsFormVisible(true);
   };
 
   const handleDeleteRecord = async (id) => {
@@ -116,6 +124,10 @@ export default function BirthRegistration() {
     } catch (error) {
       console.error("Error deleting record:", error);
     }
+  };
+  const handleViewRecordClick = (record) => {
+    setViewRecord(record);
+    setIsViewModalVisible(true);
   };
 
   const resetForm = () => {
@@ -132,9 +144,53 @@ export default function BirthRegistration() {
     setImage(null);
     setImagePreview('');
     setEditingId(null);
-    setIsFormVisible(false); // Hide form after submission
+    setIsFormVisible(false);
   };
 
+  // const handlePaymentApproval = async () => {
+  //   if (selectedRecord) {
+  //     try {
+  //       const updatedRecord = { ...selectedRecord, paymentStatus: 1 };
+  //       await updateDobRecord(selectedRecord._id, updatedRecord);
+  //       setRecords(records.map((record) => (record._id === selectedRecord._id ? updatedRecord : record)));
+  //       setIsPaymentModalVisible(false);
+  //     } catch (error) {
+  //       console.error("Error updating payment status:", error);
+  //     }
+  //   }
+  // };
+  // const handlePendingPayment = (record, isBirthRecord) => {
+  //   setSelectedRecord({
+  //       certificate_Id: record._id,
+  //       PaymentType: isBirthRecord ? 'Birth Certificate' : 'Death Certificate'
+  //   });
+  //   setIsPaymentModalVisible(true);
+  // };
+  // const handlePendingPaymentClick = (record) => {
+  //   setIsPaymentModalVisible(true); // Open the payment modal
+  //   setSelectedRecord(record); // Set the selected record
+  //   handlePendingPayment(record, false)
+  //   // Add additional actions here
+  //   // For example: reset other fields, fetch additional data, etc.
+  // };
+
+  const handlePendingPaymentClick = (record) => {
+    setSelectedRecord({
+      ...record,
+      certificate_Id: record._id,
+      paymentType: 'Birth Certificate'
+    });
+    setIsPaymentModalVisible(true);
+  };
+
+  const handlePaymentApproval = async (recordId, status) => {
+    try {
+      await updatePaymentStatus(recordId, status);
+      setRecords(records.map((record) => (record._id === recordId ? { ...record, paymentStatus: status } : record)));
+    } catch (error) {
+      console.error("Error approving payment:", error);
+    }
+  };
   return (
     <DashboardLayout>
       <div className="max-w-6xl mx-auto">
@@ -147,7 +203,6 @@ export default function BirthRegistration() {
           {isFormVisible ? "Hide Form" : "Add Record"}
         </button>
 
-        {/* Form Section */}
         {isFormVisible && (
           <div className="flex gap-4 mb-6">
             <div className="flex-1 bg-white rounded-xl shadow-sm p-6">
@@ -176,13 +231,15 @@ export default function BirthRegistration() {
                   <option value="Male">Male</option>
                   <option value="Female">Female</option>
                 </select>
-                <input
-                  type="text"
+                <select
                   value={formData.materialState}
                   onChange={(e) => setFormData({ ...formData, materialState: e.target.value })}
-                  placeholder="Marital Status"
                   className="px-4 py-2 border rounded-lg"
-                />
+                >
+                  <option value="">Marital Status</option>
+                  <option value="Single">Single</option>
+                  <option value="Married">Married</option>
+                </select>
                 <input
                   type="text"
                   value={formData.motherName}
@@ -202,6 +259,13 @@ export default function BirthRegistration() {
                     </option>
                   ))}
                 </select>
+                <input
+                  type="text"
+                  value={formData.occupation}
+                  onChange={(e) => setFormData({ ...formData, occupation: e.target.value })}
+                  placeholder="Occupation"
+                  className="px-4 py-2 border rounded-lg"
+                />
                 <select
                   value={formData.address}
                   onChange={(e) => setFormData({ ...formData, address: e.target.value })}
@@ -223,7 +287,6 @@ export default function BirthRegistration() {
               </form>
             </div>
 
-            {/* Image Upload Section */}
             <div className="w-1/3 bg-white rounded-xl shadow-sm p-6">
               <h3 className="text-lg font-semibold mb-4">Upload Image</h3>
               <label className="block text-center px-4 py-2 bg-blue-600 text-white rounded-lg cursor-pointer hover:bg-blue-700">
@@ -241,7 +304,6 @@ export default function BirthRegistration() {
           </div>
         )}
 
-        {/* Registered Records Table */}
         <div className="bg-white rounded-xl shadow-sm p-6">
           <h3 className="text-lg font-semibold mb-4">Registered Birth Records</h3>
           {isLoading ? (
@@ -250,42 +312,75 @@ export default function BirthRegistration() {
             <table className="w-full">
               <thead>
                 <tr className="bg-gray-50">
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Image</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Full Name</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date of Birth</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Gender</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mother's Name</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Address</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Payment Status</th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {records.map((record) => (
                   <tr key={record._id}>
-                    <td className="px-6 py-4 whitespace-nowrap">{record.dobId}</td>
+                    <td className="px-4 py-4 whitespace-nowrap">{record.dobId}</td>
+                    <td className="px-4 py-4 whitespace-nowrap">
+                      <img
+                        src={record.image || imagePreview}
+                        alt="record"
+                        className="w-16 h-16 object-cover rounded-md"
+                      />
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap">{record.fullName}</td>
                     <td className="px-6 py-4 whitespace-nowrap">{new Date(record.dob).toLocaleDateString()}</td>
                     <td className="px-6 py-4 whitespace-nowrap">{record.gender}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">{record.motherName}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
-                      <button
-                        onClick={() => handleEditRecord(record)}
-                        className="text-blue-600 hover:text-blue-900 mr-2"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteRecord(record._id)}
-                        className="text-red-600 hover:text-red-900"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                    <td className="px-6 py-4 whitespace-nowrap">{districtMap[record.address] || 'N/A'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      {record.paymentStatus === 0 ? (
+                        <button
+                          onClick={() => handlePendingPaymentClick(record)}
+                          className="px-3 py-1 bg-red-500 text-white rounded-full"
+                        >
+                          Pending
+                        </button>
+                      ) : (
+                        <span className="px-3 py-1 bg-green-500 text-white rounded-full">Approved</span>
+                      )}
                     </td>
+                    <td className="px-6 py-4 text-right">
+                    {/* Add "View" Button */}
+                    <button onClick={() => handleViewRecordClick(record)} className="text-blue-600 hover:text-blue-900 mr-2">
+                      <Eye className="w-4 h-4" /> {/* Use Eye icon for "View" */}
+                    </button>
+                    <button onClick={() => handleEditRecord(record)} className="text-blue-600 hover:text-blue-900 mr-2">
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => handleDeleteRecord(record._id)} className="text-red-600 hover:text-red-900">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           )}
         </div>
+        {isPaymentModalVisible && (
+          <PaymentModal
+            selectedRecord={selectedRecord}
+            setIsPaymentModalVisible={setIsPaymentModalVisible}
+            updatePaymentStatus={handlePaymentApproval}
+          />
+        )}
+        {/* View Record Modal */}
+        {isViewModalVisible && (
+          <ViewRecordModal
+            record={viewRecord}
+            setIsViewModalVisible={setIsViewModalVisible}
+          />
+        )}
       </div>
     </DashboardLayout>
   );
