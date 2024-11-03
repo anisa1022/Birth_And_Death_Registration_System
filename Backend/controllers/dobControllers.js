@@ -184,3 +184,47 @@ export const deleteDobRecord = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// Get all approved date of birth records (paymentStatus = 1)
+export const getApprovedDobRecords = async (req, res) => {
+  try {
+    const approvedDobRecords = await Dob.find({ paymentStatus: 1 })
+      .populate('placeOfBirth', 'discName')
+      .populate('address', 'discName')
+      .select('-__v');
+
+    const formattedRecords = approvedDobRecords.map(record => ({
+      ...record._doc,
+      dateOfIssue: record.dateOfIssue.toISOString().split('T')[0],
+      expirationDate: record.expirationDate.toISOString().split('T')[0],
+      dob: record.dob.toISOString().split('T')[0],
+    }));
+
+    res.status(200).json(formattedRecords);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Get all pending date of birth records (paymentStatus = 0)
+export const getPendingDobRecords = async (req, res) => {
+  try {
+    const pendingRecords = await Dob.find({ paymentStatus: 0 })
+      .populate('placeOfBirth', 'discName')
+      .populate('address', 'discName')
+      .select('-__v');
+
+    const formattedRecords = pendingRecords.map(record => ({
+      ...record._doc,
+      dateOfIssue: record.dateOfIssue.toISOString().split('T')[0],
+      expirationDate: record.expirationDate.toISOString().split('T')[0],
+      dob: record.dob.toISOString().split('T')[0],
+    }));
+
+    res.status(200).json(formattedRecords);
+  } catch (error) {
+    console.error("Error fetching pending records:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+

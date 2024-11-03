@@ -2,7 +2,7 @@ import Payment from '../models/paymentModel.js';
 import Dob from '../models/dobModel.js';
 import Dod from '../models/dodModel.js';
 import PaymentMethod from '../models/paymentMethod.js';
-
+import mongoose from 'mongoose';
 // Create a new payment based on birth or death certificate
 // export const createPayment = async (req, res) => {
 //     try {
@@ -128,19 +128,51 @@ export const deletePayment = async (req, res) => {
 
 // Update payment status by ID
 // Update payment status in Dob or Dod based on paymentType
+
+
+// export const updatePaymentStatus = async (req, res) => {
+//     try {
+//         const { certificate_Id, PaymentType } = req.body;
+
+//         let updatedRecord;
+//         const objectId =  mongoose.Types.ObjectId(certificate_Id); // Correctly use as a function
+
+//         if (PaymentType === 'Birth Certificate') {
+//             updatedRecord = await Dob.findByIdAndUpdate(objectId, { paymentStatus: 1 }, { new: true });
+//         } else if (PaymentType === 'Death Certificate') {
+//             updatedRecord = await Dod.findByIdAndUpdate(objectId, { paymentStatus: 1 }, { new: true });
+//         }
+
+//         if (!updatedRecord) {
+//             return res.status(404).json({ message: "Record not found" });
+//         }
+
+//         res.status(200).json({ message: "Payment status updated successfully", updatedRecord });
+//     } catch (error) {
+//         console.error("Error updating payment status:", error);
+//         res.status(500).json({ message: error.message });
+//     }
+// };
 export const updatePaymentStatus = async (req, res) => {
     try {
         const { certificate_Id, PaymentType } = req.body;
 
         let updatedRecord;
-        if (PaymentType === 'Birth Certificate') {
-            updatedRecord = await Dob.findByIdAndUpdate(certificate_Id, { paymentStatus: 1 }, { new: true });
-        } else if (PaymentType === 'Death Certificate') {
-            updatedRecord = await Dod.findByIdAndUpdate(certificate_Id, { paymentStatus: 1 }, { new: true });
-        }
 
-        if (!updatedRecord) {
-            return res.status(404).json({ message: "Record not found" });
+        if (PaymentType === 'Birth Certificate') {
+            // Find and update Dob record
+            const birthRecord = await Dob.findById(certificate_Id);
+            if (!birthRecord) {
+                return res.status(404).json({ message: "Birth certificate record not found." });
+            }
+            updatedRecord = await Dob.findByIdAndUpdate(certificate_Id, { paymentStatus: 1 }, { new: true }).populate('placeOfBirth', 'discName');
+        } else if (PaymentType === 'Death Certificate') {
+            // Find and update Dod record
+            const deathRecord = await Dod.findById(certificate_Id);
+            if (!deathRecord) {
+                return res.status(404).json({ message: "Death certificate record not found." });
+            }
+            updatedRecord = await Dod.findByIdAndUpdate(certificate_Id, { paymentStatus: 1 }, { new: true }).populate('dob', 'fullName').populate('placeOfDeath', 'discName');
         }
 
         res.status(200).json({ message: "Payment status updated successfully", updatedRecord });

@@ -120,12 +120,7 @@ export default function Login() {
                             </button>
                         </form>
 
-                        <p className="mt-8 text-center text-gray-600">
-                            Dont have an account?{' '}
-                            <a href="/signup" className="text-pink-500 hover:text-pink-600 font-medium">
-                                Sign Up
-                            </a>
-                        </p>
+                        
                     </div>
                 </div>
             </div>

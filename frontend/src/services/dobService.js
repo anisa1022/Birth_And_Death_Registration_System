@@ -67,3 +67,23 @@ export const deleteDobRecord = async (id) => {
     throw error.response?.data || { message: 'Failed to delete DOB record' };
   }
 };
+
+export const fetchApprovedDobRecords = async () => {
+  try {
+    const response = await axios.get(`${DOB_API_URL}/approved`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching approved records:', error);
+    throw error;
+  }
+};
+
+export const fetchPendingDobRecords = async () => {
+  try {
+    const response = await axios.get(`${DOB_API_URL}/pending`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching pending records:', error);
+    throw error;
+  }
+};

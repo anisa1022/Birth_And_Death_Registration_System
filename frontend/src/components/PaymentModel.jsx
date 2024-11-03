@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
-import { getPaymentMethods, createPayment } from '../services/paymentService';
+import { getPaymentMethods, createPayment, updatePaymentStatus } from '../services/paymentService';
 
-function PaymentModal({ selectedRecord, setIsPaymentModalVisible, updatePaymentStatus }) {
+function PaymentModal({ selectedRecord, setIsPaymentModalVisible, setRecords, isDeathRecord }) {
   const [paymentMethods, setPaymentMethods] = useState([]);
   const [formData, setFormData] = useState({
     recordId: selectedRecord.certificate_Id || selectedRecord.dobId || selectedRecord._id,
     fullName: selectedRecord.fullName,
     paymentMethodId: '',
     receiverNumber: '',
-    paymentType: selectedRecord.paymentType || 'Birth Certificate', // Default if paymentType is absent
+    paymentType: selectedRecord.paymentType || (isDeathRecord ? 'Death Certificate' : 'Birth Certificate'),
     amount: '',
     senderNumber: ''
   });
@@ -29,21 +29,41 @@ function PaymentModal({ selectedRecord, setIsPaymentModalVisible, updatePaymentS
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+    if (name === 'senderNumber') {
+      // Ensure the number starts with +252- and restricts to exactly 9 more digits
+      if (!value.startsWith('+252-')) {
+        setFormData((prev) => ({ ...prev, [name]: '+252-' }));
+      } else if (/^\+252-\d{0,9}$/.test(value)) {
+        setFormData((prev) => ({ ...prev, [name]: value }));
+      }
+    } else {
+      setFormData({ ...formData, [name]: value });
+    }
   };
 
   const handleApprovePayment = async () => {
     try {
+      // First, create the payment record
       const payload = {
         certificate_Id: formData.recordId,
         paymentMethod: formData.paymentMethodId,
         PaymentType: formData.paymentType,
         senderNumber: formData.senderNumber
       };
-
       await createPayment(payload);
-      updatePaymentStatus(selectedRecord._id, 1); // Update status to "Approved"
-      setIsPaymentModalVisible(false);
+
+      // Update the payment status
+      const statusPayload = { certificate_Id: formData.recordId, PaymentType: formData.paymentType };
+      await updatePaymentStatus(statusPayload);
+
+      // Update the main records state in BirthRegistration immediately
+      setRecords((prevRecords) =>
+        prevRecords.map((record) =>
+          record._id === selectedRecord._id ? { ...record, paymentStatus: 1 } : record
+        )
+      );
+
+      setIsPaymentModalVisible(false); // Close modal
     } catch (error) {
       console.error("Error approving payment:", error);
     }
@@ -56,7 +76,7 @@ function PaymentModal({ selectedRecord, setIsPaymentModalVisible, updatePaymentS
         <form className="space-y-4">
           <input 
             type="text" 
-            value={`ID: ${formData.recordId} | Name: ${formData.fullName}`} 
+            value={formData.fullName} 
             disabled 
             className="w-full px-4 py-2 border rounded-lg bg-gray-100" 
           />

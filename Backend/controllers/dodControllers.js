@@ -42,6 +42,7 @@ import mongoose from 'mongoose';
 // };
 export const createDodRecord = async (req, res) => {
   try {
+    console.log("incoming data" , req.body)
     const { dob, image, dateOfDeath, causeOfDeath, placeOfDeath } = req.body;
 
     // Check if the provided DOB ID exists
@@ -169,6 +170,7 @@ export const getDodRecordById = async (req, res) => {
 
 export const updateDodRecord = async (req, res) => {
   try {
+    console.log("incoming data" , req.body)
     console.log("Incoming request body:", req.body);
     const { dob, image, dateOfDeath, causeOfDeath, placeOfDeath } = req.body;
 

@@ -1,11 +1,15 @@
 import { useState, useEffect } from 'react';
 import DashboardLayout from '../components/layout.jsx';
 import ViewRecordModal from '../components/ViewRecordModal.jsx';
-import { Plus, Trash2, Edit,Eye } from 'lucide-react';
-import { createDobRecord, getAllDobRecords, deleteDobRecord, updateDobRecord } from '../services/dobService.js';
+import { Plus, Trash2, Edit, Eye } from 'lucide-react';
+import { createDobRecord, getAllDobRecords, deleteDobRecord, updateDobRecord, fetchPendingDobRecords  } from '../services/dobService.js';
 import { getAllDistricts } from '../services/districtService.js';
 import PaymentModal from '../components/PaymentModel.jsx';
 import { updatePaymentStatus } from '../services/paymentService.js';
+import toast, { Toaster } from 'react-hot-toast';
+
+
+
 export default function BirthRegistration() {
   const [records, setRecords] = useState([]);
   const [districts, setDistricts] = useState([]);
@@ -27,14 +31,16 @@ export default function BirthRegistration() {
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState(null);
-  const [isViewModalVisible, setIsViewModalVisible] = useState(false); // New state for the view modal
-  const [viewRecord, setViewRecord] = useState(null); // New state to hold the record for viewing
+  const [isViewModalVisible, setIsViewModalVisible] = useState(false); 
+  const [viewRecord, setViewRecord] = useState(null);
 
   useEffect(() => {
-    getAllDobRecords().then((data) => {
+    fetchPendingDobRecords()
+    .then((data) => {
       setRecords(data);
       setIsLoading(false);
-    }).catch((error) => {
+    })
+    .catch((error) => {
       console.error("Error fetching records:", error);
       setIsLoading(false);
     });
@@ -58,11 +64,56 @@ export default function BirthRegistration() {
       setImagePreview(URL.createObjectURL(file));
     }
   };
+  function validateThreeWords(input) {
+    // Split the input by spaces and filter out empty strings
+    const words = input.trim().split(/\s+/);
+    return words.length >= 3;
+  }
+  function preventNumbers(input) {
+    // Check if the input contains any digit
+    const hasNumbers = /\d/.test(input);
+    return !hasNumbers; // Return true if there are no numbers
+  }
+  const validateForm = () => {
+    const { fullName, dob, gender, materialState, motherName, placeOfBirth, occupation, address } = formData;
 
+    // Check if all required fields are filled
+    if (!fullName || !dob || !gender || !materialState || !motherName || !placeOfBirth || !occupation || !address || !image) {
+      toast.error("Please fill all required fields and upload an image.");
+      return false;
+    }
+
+    // Check for three words in fullName and motherName
+    if (fullName.trim().split(/\s+/).length < 3) {
+      toast.error("Full Name must have at least three words.");
+      return false;
+    }
+
+    if (motherName.trim().split(/\s+/).length < 3) {
+      toast.error("Mother's Name must have at least three words.");
+      return false;
+    }
+
+    // Prevent numbers in occupation and motherName
+    if (/\d/.test(formData.occupation)) {
+      toast.error("Occupation should not contain numbers.");
+      return false;
+    }
+
+    if (/\d/.test(formData.motherName)) {
+      toast.error("Mother's Name should not contain numbers.");
+      return false;
+    }
+
+    return true;
+  };
   const handleAddRecord = async (e) => {
     e.preventDefault();
     const { fullName, dob, gender, materialState, motherName, placeOfBirth, occupation, address } = formData;
-
+    if (!validateForm()) {
+      return;
+    }
+    
     try {
       let base64Image = '';
       if (image) {
@@ -83,7 +134,7 @@ export default function BirthRegistration() {
         occupation,
         address,
         image: base64Image,
-        paymentStatus: 0, // Ensure new records are set to Pending
+        paymentStatus: 0,
       };
 
       if (editingId) {
@@ -125,6 +176,7 @@ export default function BirthRegistration() {
       console.error("Error deleting record:", error);
     }
   };
+
   const handleViewRecordClick = (record) => {
     setViewRecord(record);
     setIsViewModalVisible(true);
@@ -147,33 +199,6 @@ export default function BirthRegistration() {
     setIsFormVisible(false);
   };
 
-  // const handlePaymentApproval = async () => {
-  //   if (selectedRecord) {
-  //     try {
-  //       const updatedRecord = { ...selectedRecord, paymentStatus: 1 };
-  //       await updateDobRecord(selectedRecord._id, updatedRecord);
-  //       setRecords(records.map((record) => (record._id === selectedRecord._id ? updatedRecord : record)));
-  //       setIsPaymentModalVisible(false);
-  //     } catch (error) {
-  //       console.error("Error updating payment status:", error);
-  //     }
-  //   }
-  // };
-  // const handlePendingPayment = (record, isBirthRecord) => {
-  //   setSelectedRecord({
-  //       certificate_Id: record._id,
-  //       PaymentType: isBirthRecord ? 'Birth Certificate' : 'Death Certificate'
-  //   });
-  //   setIsPaymentModalVisible(true);
-  // };
-  // const handlePendingPaymentClick = (record) => {
-  //   setIsPaymentModalVisible(true); // Open the payment modal
-  //   setSelectedRecord(record); // Set the selected record
-  //   handlePendingPayment(record, false)
-  //   // Add additional actions here
-  //   // For example: reset other fields, fetch additional data, etc.
-  // };
-
   const handlePendingPaymentClick = (record) => {
     setSelectedRecord({
       ...record,
@@ -186,10 +211,32 @@ export default function BirthRegistration() {
   const handlePaymentApproval = async (recordId, status) => {
     try {
       await updatePaymentStatus(recordId, status);
-      setRecords(records.map((record) => (record._id === recordId ? { ...record, paymentStatus: status } : record)));
-    } catch (error) {
+      setRecords((prevRecords) =>
+        prevRecords.filter((record) => record._id !== recordId || status !== 1)
+      );
+  
+      setIsPaymentModalVisible(false);  
+     } catch (error) {
       console.error("Error approving payment:", error);
     }
+  };
+  const handleInputChange = (field, value) => {
+    if (field === 'fullName' || field === 'motherName') {
+      // Check for three words
+      if (!validateThreeWords(value)) {
+        toast.error(`${field === 'fullName' ? 'Full Name' : "Mother's Name"} must have at least three words.`);
+      }
+    }
+
+    if (field === 'occupation' || field === 'motherName') {
+      // Prevent numbers in occupation and mother's name
+      if (!preventNumbers(value)) {
+        toast.error(`${field === 'occupation' ? 'Occupation' : "Mother's Name"} should not contain numbers.`);
+        return; // Stop further processing if invalid input
+      }
+    }
+
+    setFormData({ ...formData, [field]: value });
   };
   return (
     <DashboardLayout>
@@ -211,7 +258,12 @@ export default function BirthRegistration() {
                 <input
                   type="text"
                   value={formData.fullName}
-                  onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                  onChange={(e) => handleInputChange('fullName', e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key >= '0' && e.key <= '9') {
+                      e.preventDefault();
+                    }
+                  }}
                   placeholder="Full Name"
                   className="px-4 py-2 border rounded-lg"
                 />
@@ -243,7 +295,12 @@ export default function BirthRegistration() {
                 <input
                   type="text"
                   value={formData.motherName}
-                  onChange={(e) => setFormData({ ...formData, motherName: e.target.value })}
+                  onChange={(e) => handleInputChange('motherName', e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key >= '0' && e.key <= '9') {
+                      e.preventDefault();
+                    }
+                  }}
                   placeholder="Mother's Name"
                   className="px-4 py-2 border rounded-lg"
                 />
@@ -262,7 +319,7 @@ export default function BirthRegistration() {
                 <input
                   type="text"
                   value={formData.occupation}
-                  onChange={(e) => setFormData({ ...formData, occupation: e.target.value })}
+                  onChange={(e) => handleInputChange('occupation', e.target.value)}
                   placeholder="Occupation"
                   className="px-4 py-2 border rounded-lg"
                 />
@@ -279,7 +336,8 @@ export default function BirthRegistration() {
                   ))}
                 </select>
                 <button
-                  type="submit"
+                  type="button"
+                  onClick={handleAddRecord}
                   className="col-span-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                 >
                   {editingId ? "Update Record" : "Save Record"}
@@ -339,28 +397,25 @@ export default function BirthRegistration() {
                     <td className="px-6 py-4 whitespace-nowrap">{districtMap[record.address] || 'N/A'}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
                       {record.paymentStatus === 0 ? (
-                        <button
-                          onClick={() => handlePendingPaymentClick(record)}
-                          className="px-3 py-1 bg-red-500 text-white rounded-full"
-                        >
-                          Pending
-                        </button>
+                        <span className="text-red-500">Pending</span>
                       ) : (
-                        <span className="px-3 py-1 bg-green-500 text-white rounded-full">Approved</span>
+                        <span className="text-green-500">Approved</span>
                       )}
                     </td>
                     <td className="px-6 py-4 text-right">
-                    {/* Add "View" Button */}
-                    <button onClick={() => handleViewRecordClick(record)} className="text-blue-600 hover:text-blue-900 mr-2">
-                      <Eye className="w-4 h-4" /> {/* Use Eye icon for "View" */}
-                    </button>
-                    <button onClick={() => handleEditRecord(record)} className="text-blue-600 hover:text-blue-900 mr-2">
-                      <Edit className="w-4 h-4" />
-                    </button>
-                    <button onClick={() => handleDeleteRecord(record._id)} className="text-red-600 hover:text-red-900">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </td>
+                      <button onClick={() => handlePendingPaymentClick(record)} className="px-3 py-1 bg-green-500 text-white rounded-full mr-2">
+                        Pay
+                      </button>
+                      <button onClick={() => handleViewRecordClick(record)} className="text-blue-600 hover:text-blue-900 mr-2">
+                        <Eye className="w-4 h-4" />
+                      </button>
+                      <button onClick={() => handleEditRecord(record)} className="text-blue-600 hover:text-blue-900 mr-2">
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button onClick={() => handleDeleteRecord(record._id)} className="text-red-600 hover:text-red-900">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -372,13 +427,15 @@ export default function BirthRegistration() {
             selectedRecord={selectedRecord}
             setIsPaymentModalVisible={setIsPaymentModalVisible}
             updatePaymentStatus={handlePaymentApproval}
+            setRecords={setRecords}  
+            isDeathRecord={false} 
           />
         )}
-        {/* View Record Modal */}
         {isViewModalVisible && (
           <ViewRecordModal
             record={viewRecord}
             setIsViewModalVisible={setIsViewModalVisible}
+            recordType="birth"
           />
         )}
       </div>

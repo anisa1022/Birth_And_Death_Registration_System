@@ -1,6 +1,6 @@
 import React from 'react';
 
-function ViewRecordModal({ record, setIsViewModalVisible }) {
+function ViewRecordModal({ record, setIsViewModalVisible, recordType }) {
   if (!record) return null;
 
   return (
@@ -22,13 +22,27 @@ function ViewRecordModal({ record, setIsViewModalVisible }) {
           <div className="space-y-2">
             <p><strong>ID:</strong> {record.dobId || record.id || 'N/A'}</p>
             <p><strong>Full Name:</strong> {record.fullName || 'N/A'}</p>
-            <p><strong>Date of Birth/Death:</strong> {record.dob ? new Date(record.dob).toLocaleDateString() : (record.dateOfDeath ? new Date(record.dateOfDeath).toLocaleDateString() : 'N/A')}</p>
-            <p><strong>Gender:</strong> {record.gender || 'N/A'}</p>
-            <p><strong>Mother's Name:</strong> {record.motherName || 'N/A'}</p>
-            <p><strong>Place of Birth/Death:</strong> {record.placeOfBirth?.discName || record.placeOfDeath?.discName || 'N/A'}</p>
-            <p><strong>Occupation:</strong> {record.occupation || 'N/A'}</p>
-            <p><strong>Address:</strong> {record.address?.discName || 'N/A'}</p>
-            <p><strong>Cause of Death:</strong> {record.causeOfDeath || 'N/A'}</p>
+            
+            {/* Conditional Rendering Based on Record Type */}
+            {recordType === 'birth' && (
+              <>
+                <p><strong>Date of Birth:</strong> {record.dob ? new Date(record.dob).toLocaleDateString() : 'N/A'}</p>
+                <p><strong>Gender:</strong> {record.gender || 'N/A'}</p>
+                <p><strong>Mother's Name:</strong> {record.motherName || 'N/A'}</p>
+                <p><strong>Place of Birth:</strong> {record.placeOfBirth?.discName || 'N/A'}</p>
+                <p><strong>Occupation:</strong> {record.occupation || 'N/A'}</p>
+                <p><strong>Address:</strong> {record.address?.discName || 'N/A'}</p>
+              </>
+            )}
+
+            {recordType === 'death' && (
+              <>
+                <p><strong>Date of Death:</strong> {record.dateOfDeath ? new Date(record.dateOfDeath).toLocaleDateString() : 'N/A'}</p>
+                <p><strong>Cause of Death:</strong> {record.causeOfDeath || 'N/A'}</p>
+                <p><strong>Place of Death:</strong> {record.placeOfDeath?.discName || 'N/A'}</p>
+              </>
+            )}
+            
             <p><strong>Payment Status:</strong> {record.paymentStatus === 0 ? 'Pending' : 'Approved'}</p>
           </div>
           

@@ -31,7 +31,7 @@ export const createPayment = async (paymentData) => {
 // paymentService.js
 export const updatePaymentStatus = async (data) => {
     try {
-        const response = await axios.put(`http://localhost:5000/api/payments/status`, data);
+        const response = await axios.put(`${API_BASE_URL}/payments/status`, data);
         return response.data;
     } catch (error) {
         console.error("Error updating payment status:", error);
