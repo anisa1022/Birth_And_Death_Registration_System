@@ -172,7 +172,7 @@ export default function DashboardLayout({ children }) {
               <UserCircleIcon className="h-8 w-8 text-gray-600" />
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-600">Hello,</span>
-                <span className="font-medium text-purple-500">{user?.userName || 'Guest'}</span>
+                <span className="font-medium text-purple-500">{user?.userName || 'Anisa'}</span>
                 <ChevronDown className="h-4 w-4 text-gray-600" />
               </div>
             </div>

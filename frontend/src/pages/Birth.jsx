@@ -37,7 +37,12 @@ export default function BirthRegistration() {
   useEffect(() => {
     fetchPendingDobRecords()
     .then((data) => {
-      setRecords(data);
+      const mappedRecords = data.map((record) => ({
+        ...record,
+        addressName: districtMap[record.address] || 'N/A',
+        placeOfBirthName: districtMap[record.placeOfBirth] || 'N/A'
+      }));
+      setRecords(mappedRecords);
       setIsLoading(false);
     })
     .catch((error) => {

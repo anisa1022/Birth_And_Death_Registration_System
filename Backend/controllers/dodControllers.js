@@ -82,22 +82,6 @@ export const createDodRecord = async (req, res) => {
   }
 };
 
-export const updatePaymentStatus = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const updatedDod = await Dod.findByIdAndUpdate(
-      id,
-      { paymentStatus: 1 },
-      { new: true }
-    );
-    if (!updatedDod) return res.status(404).json({ message: "Record not found" });
-
-    res.status(200).json(updatedDod);
-  } catch (error) {
-    console.error("Error in updatePaymentStatus:", error);
-    res.status(500).json({ message: error.message });
-  }
-};
 export const getAllDodRecords = async (req, res) => {
   try {
     const dodRecords = await Dod.find().populate('placeOfDeath', 'discName').populate('dob', 'fullName'); // Only populate `discName` field
@@ -215,6 +199,35 @@ export const deleteDodRecord = async (req, res) => {
     if (!deletedDod) return res.status(404).json({ message: "Record not found" });
     res.status(200).json({ message: "Record deleted successfully" });
   } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+// Get all approved Dod records
+export const getApprovedDodRecords = async (req, res) => {
+  try {
+    const approvedDodRecords = await Dod.find({ paymentStatus: 1 })
+      .populate('dob', 'fullName')
+      .populate('placeOfDeath', 'discName')
+      .select('-__v'); // Exclude the __v field
+
+    res.status(200).json(approvedDodRecords);
+  } catch (error) {
+    console.error("Error in getApprovedDodRecords:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Get all pending Dod records
+export const getPendingDodRecords = async (req, res) => {
+  try {
+    const pendingDodRecords = await Dod.find({ paymentStatus: 0 })
+      .populate('dob', 'fullName')
+      .populate('placeOfDeath', 'discName')
+      .select('-__v'); // Exclude the __v field
+
+    res.status(200).json(pendingDodRecords);
+  } catch (error) {
+    console.error("Error in getPendingDodRecords:", error);
     res.status(500).json({ message: error.message });
   }
 };

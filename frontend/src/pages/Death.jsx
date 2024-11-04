@@ -1,22 +1,54 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import DashboardLayout from '../components/layout';
-import { Eye, Edit, Trash2 } from 'lucide-react';
+import { Eye, Edit, Trash2, Plus } from 'lucide-react';
+import ViewRecordModal from '../components/ViewRecordModal';
+import PaymentModal from '../components/PaymentModel';
 import toast, { Toaster } from 'react-hot-toast';
-
-const ADDRESSES = ['Wartanabada', 'Yaqshid', 'N/A'];
+import { fetchPendingDodRecords, deleteDodRecord, createDodRecord, updateDodRecord ,getDodRecordById} from '../services/dodService';
+import { getAllDistricts } from '../services/districtService';
+import { getAllDobRecords } from '../services/dobService';
 
 export default function DeathRegistration() {
-  const [showForm, setShowForm] = useState(true);
+  const [showForm, setShowForm] = useState(false);
   const [records, setRecords] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [districts, setDistricts] = useState([]);
+  const [dobRecords, setDobRecords] = useState([]);
   const [newRecord, setNewRecord] = useState({
-    fullName: '',
+    dob: '',
     dateOfDeath: '',
     causeOfDeath: '',
     placeOfDeath: '',
     image: null,
   });
   const [imagePreview, setImagePreview] = useState('');
+  const [editingId, setEditingId] = useState(null);
+  const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false);
+  const [isViewModalVisible, setIsViewModalVisible] = useState(false);
+  const [selectedRecord, setSelectedRecord] = useState(null);
+  const [viewRecord, setViewRecord] = useState(null);
+  const [districtMap, setDistrictMap] = useState({});
+
+  useEffect(() => {
+    fetchPendingDodRecords()
+      .then((data) => setRecords(data))
+      .catch((error) => console.error("Error fetching records:", error))
+      .finally(() => setIsLoading(false));
+
+      getAllDistricts()
+      .then((data) => {
+        setDistricts(data);
+        const mapping = data.reduce((acc, district) => {
+          acc[district._id] = district.discName; // Map each district ID to its name
+          return acc;
+        }, {});
+        setDistrictMap(mapping); // Set the districtMap
+      })
+      .catch((error) => console.error("Error fetching districts:", error));
+    getAllDobRecords()
+      .then((data) => setDobRecords(data))
+      .catch((error) => console.error("Error fetching dob records:", error));
+  }, []);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -31,33 +63,171 @@ export default function DeathRegistration() {
     }
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const { fullName, dateOfDeath, causeOfDeath, placeOfDeath, image } = newRecord;
+  // const handleSubmit = async (e) => {
+  //   e.preventDefault();
+  //   const { dob, dateOfDeath, causeOfDeath, placeOfDeath, image } = newRecord;
 
-    // Validation for empty fields
-    if (!fullName || !dateOfDeath || !causeOfDeath || !placeOfDeath || !image) {
-      toast.error('Please fill in all fields and upload an image before saving.');
+  //   if (!dob || !dateOfDeath || !causeOfDeath || !placeOfDeath) {
+  //     toast.error("Please fill in all fields.");
+  //     return;
+  //   }
+
+  //   try {
+  //     let base64Image = imagePreview; // Use existing image if no new upload
+  //     if (image) {
+  //       const reader = new FileReader();
+  //       reader.readAsDataURL(image);
+  //       base64Image = await new Promise((resolve) => {
+  //         reader.onload = () => resolve(reader.result);
+  //       });
+  //     }
+
+  //     const payload = { dob, dateOfDeath, causeOfDeath, placeOfDeath, image: base64Image };
+  //     let updatedRecords;
+
+  //     if (editingId) {
+  //       await updateDodRecord(editingId, payload);
+  //       updatedRecords = records.map((record) => (record._id === editingId ? { ...record, ...payload } : record));
+  //       setEditingId(null);
+  //     } else {
+  //       const createdRecord = await createDodRecord(payload);
+  //       updatedRecords = [...records, createdRecord];
+  //     }
+
+  //     setRecords(updatedRecords);
+  //     setNewRecord({ dob: '', dateOfDeath: '', causeOfDeath: '', placeOfDeath: '', image: null });
+  //     setImagePreview('');
+  //     setShowForm(false);
+  //     toast.success(editingId ? "Record updated successfully!" : "Record added successfully!");
+  //   } catch (error) {
+  //     console.error("Error creating or updating record:", error);
+  //     toast.error("Failed to save record.");
+  //   }
+  // };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const { dob, dateOfDeath, causeOfDeath, placeOfDeath } = newRecord;
+  
+    // Check if essential fields are filled
+    if (!dob || !dateOfDeath || !causeOfDeath || !placeOfDeath) {
+      toast.error("Please fill in all fields.");
       return;
     }
-
-    // Proceed with submission
-    console.log('Submitting new death record:', newRecord);
-
-    // Reset the form after submission
-    setNewRecord({
-      fullName: '',
-      dateOfDeath: '',
-      causeOfDeath: '',
-      placeOfDeath: '',
-      image: null,
+  
+    try {
+      let base64Image = null; // Initialize with null
+  
+      // Check if a new image was uploaded
+      if (newRecord.image) {
+        const reader = new FileReader();
+        reader.readAsDataURL(newRecord.image);
+        base64Image = await new Promise((resolve, reject) => {
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = reject; // Handle the error if reading fails
+        });
+      } else {
+        // If no new image is provided, use the existing image
+        const existingRecord = records.find(record => record._id === editingId);
+        base64Image = existingRecord?.image; // Use the existing image if available
+      }
+  
+      // Prepare payload for submission
+      const payload = { dob, dateOfDeath, causeOfDeath, placeOfDeath, image: base64Image };
+      let updatedRecords;
+  
+      if (editingId) {
+        await updateDodRecord(editingId, payload);
+        updatedRecords = records.map((record) => (record._id === editingId ? { ...record, ...payload } : record));
+        setEditingId(null);
+      } else {
+        const createdRecord = await createDodRecord(payload);
+        updatedRecords = [...records, createdRecord];
+      }
+  
+      // Update state after submission
+      setRecords(updatedRecords);
+      setNewRecord({ dob: '', dateOfDeath: '', causeOfDeath: '', placeOfDeath: '', image: null });
+      setImagePreview('');
+      setShowForm(false);
+      toast.success(editingId ? "Record updated successfully!" : "Record added successfully!");
+    } catch (error) {
+      console.error("Error creating or updating record:", error);
+      toast.error("Failed to save record.");
+    }
+  };
+  
+  
+  const handlePendingPaymentClick = (record) => {
+    setSelectedRecord({
+      ...record,
+      certificate_Id: record._id,
+      fullName: record.dob?.fullName || '',
+      paymentType: 'Death Certificate'
     });
-    setImagePreview('');
-    toast.success('Record saved successfully!');
+    setIsPaymentModalVisible(true);
   };
 
-  // Prevent numeric input in "Cause of Death"
+  // const handlePaymentApproval = async (recordId) => {
+  //   try {
+  //     await updatePaymentStatus({ certificate_Id: recordId, PaymentType: 'Death Certificate' });
+  //     setRecords((prevRecords) => prevRecords.filter((record) => record._id !== recordId));
+  //     setIsPaymentModalVisible(false);
+  //     toast.success("Payment approved and record removed from pending!");
+  //   } catch (error) {
+  //     console.error("Error approving payment:", error);
+  //     toast.error("Failed to approve payment.");
+  //   }
+  // };
+
+  const handleViewRecordClick = async (record) => {
+    if (!record || !record._id) {
+      console.error("Record or id is missing:", record);
+      return; // Exit if the record ID is not available
+    }
   
+    try {
+      // Fetch the death record using _id
+      const deathRecord = await getDodRecordById(record._id);
+      
+      // Extract relevant details
+      const fullName = deathRecord.dob?.fullName || 'N/A'; // Access fullName from related dob record if necessary
+      const placeOfDeath = districtMap[deathRecord.placeOfDeath] || 'N/A'; // Get the discName from districtMap
+  
+      setViewRecord({
+        ...deathRecord,
+        fullName: fullName,
+        placeOfDeath: placeOfDeath,
+      });
+      setIsViewModalVisible(true);
+    } catch (error) {
+      console.error("Error fetching death record:", error);
+    }
+  };
+  
+  const handleEditRecord = (record) => {
+    setNewRecord({
+      dob: record.dob._id,
+      dateOfDeath: record.dateOfDeath.split("T")[0],
+      causeOfDeath: record.causeOfDeath,
+      placeOfDeath: record.placeOfDeath._id,
+      image: record.image,
+    });
+    setImagePreview(record.image);
+    setEditingId(record._id);
+    setShowForm(true);
+  };
+
+  const handleDeleteRecord = async (id) => {
+    try {
+      await deleteDodRecord(id);
+      setRecords(records.filter((record) => record._id !== id));
+      toast.success("Record deleted successfully!");
+    } catch (error) {
+      toast.error("Error deleting record. Please try again.");
+    }
+  };
+
   return (
     <DashboardLayout>
       <Toaster position="top-right" reverseOrder={false} />
@@ -66,25 +236,31 @@ export default function DeathRegistration() {
           <h2 className="text-2xl font-bold">Death Registration</h2>
           <button
             onClick={() => setShowForm(!showForm)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
           >
-            {showForm ? 'Hide Form' : 'Add Record'}
+            <Plus className="w-4 h-4" />
+            {showForm ? "Hide Form" : "Add Record"}
           </button>
         </div>
 
         {showForm && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
             <div className="md:col-span-2 bg-white rounded-xl shadow-sm p-6">
-              <h3 className="text-lg font-semibold mb-4">Add New Death Record</h3>
+              <h3 className="text-lg font-semibold mb-4">{editingId ? "Edit Death Record" : "Add New Death Record"}</h3>
               <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <input
-                  type="text"
-                  name="fullName"
-                  value={newRecord.fullName}
+                <select
+                  name="dob"
+                  value={newRecord.dob}
                   onChange={handleInputChange}
-                  placeholder="Full Name"
                   className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+                >
+                  <option value="">Select Full Name (based on birth record)</option>
+                  {dobRecords.map((dobRecord) => (
+                    <option key={dobRecord._id} value={dobRecord._id}>
+                      {dobRecord.fullName}
+                    </option>
+                  ))}
+                </select>
                 <input
                   type="date"
                   name="dateOfDeath"
@@ -97,11 +273,6 @@ export default function DeathRegistration() {
                   name="causeOfDeath"
                   value={newRecord.causeOfDeath}
                   onChange={handleInputChange}
-                  onKeyDown={(e) => {
-                    if (e.key >= '0' && e.key <= '9') {
-                      e.preventDefault();
-                    }
-                  }}
                   placeholder="Cause of Death"
                   className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
@@ -112,9 +283,9 @@ export default function DeathRegistration() {
                   className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Select Place of Death</option>
-                  {ADDRESSES.map((address) => (
-                    <option key={address} value={address}>
-                      {address}
+                  {districts.map((district) => (
+                    <option key={district._id} value={district._id}>
+                      {district.discName}
                     </option>
                   ))}
                 </select>
@@ -122,7 +293,7 @@ export default function DeathRegistration() {
                   type="submit"
                   className="md:col-span-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                 >
-                  Save Record
+                  {editingId ? "Update Record" : "Save Record"}
                 </button>
               </form>
             </div>
@@ -141,45 +312,71 @@ export default function DeathRegistration() {
         )}
 
         <div className="bg-white rounded-xl shadow-sm p-6 overflow-x-auto">
-          <h3 className="text-lg font-semibold mb-4">Registered Death Records</h3>
+          <h3 className="text-lg font-semibold mb-4">Pending Death Records</h3>
           {isLoading ? (
             <p>Loading death records...</p>
           ) : (
             <table className="w-full">
               <thead>
                 <tr className="bg-gray-50">
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Full Name</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date of Death</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cause of Death</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Place of Death</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment Status</th>
-                  <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  <th className="px-4 py-2">ID</th>
+                  <th className="px-4 py-2">Image</th>
+                  <th className="px-4 py-2">Full Name</th>
+                  <th className="px-4 py-2">Date of Death</th>
+                  <th className="px-4 py-2">Cause of Death</th>
+                  <th className="px-4 py-2">Place of Death</th>
+                  <th className="px-4 py-2">Payment Status</th>
+                  <th className="px-4 py-2">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {records.map((record) => (
-                  <tr key={record.id}>
-                    <td className="px-4 py-2 whitespace-nowrap">{record.id}</td>
-                    <td className="px-4 py-2 whitespace-nowrap">{record.fullName}</td>
-                    <td className="px-4 py-2 whitespace-nowrap">{new Date(record.dateOfDeath).toLocaleDateString()}</td>
-                    <td className="px-4 py-2 whitespace-nowrap">{record.causeOfDeath}</td>
-                    <td className="px-4 py-2 whitespace-nowrap">{record.placeOfDeath}</td>
-                    <td className="px-4 py-2 whitespace-nowrap">
-                      <span className={`px-2 py-1 rounded-full text-xs ${record.paymentStatus === 'Approved' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                        {record.paymentStatus === 'Approved' ? 'Approved' : 'Pending'}
+                  <tr key={record._id}>
+                    <td className="px-4 py-2">{record.id}</td>
+                    <td className="px-4 py-2">
+                      <img
+                        src={record.image || '/default-image.png'}
+                        alt="Record Image"
+                        className="w-10 h-10 object-cover rounded-md"
+                      />
+                    </td>
+                    <td className="px-4 py-2">{record.dob?.fullName}</td>
+                    <td className="px-4 py-2">{new Date(record.dateOfDeath).toLocaleDateString()}</td>
+                    <td className="px-4 py-2">{record.causeOfDeath}</td>
+                    <td className="px-4 py-2">{record.placeOfDeath?.discName}</td>
+                    <td className="px-4 py-2">
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs ${
+                          record.paymentStatus === 0 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+                        }`}
+                      >
+                        {record.paymentStatus === 0 ? 'Pending' : 'Approved'}
                       </span>
                     </td>
-                    <td className="px-4 py-2 whitespace-nowrap">
+                    <td className="px-4 py-2">
                       <div className="flex items-center gap-2">
-                        <button className="p-1 bg-green-500 text-white rounded-lg hover:bg-green-600">Pay</button>
-                        <button className="p-1 text-blue-600 hover:text-blue-900">
+                        <button
+                          onClick={() => handlePendingPaymentClick(record)}
+                          className="px-3 py-1 bg-green-500 text-white rounded-full"
+                        >
+                          Pay
+                        </button>
+                        <button
+                          onClick={() => handleViewRecordClick(record)}
+                          className="p-1 text-blue-600 hover:text-blue-900"
+                        >
                           <Eye className="w-4 h-4" />
                         </button>
-                        <button className="p-1 text-blue-600 hover:text-blue-900">
+                        <button
+                          onClick={() => handleEditRecord(record)}
+                          className="p-1 text-blue-600 hover:text-blue-900"
+                        >
                           <Edit className="w-4 h-4" />
                         </button>
-                        <button className="p-1 text-red-600 hover:text-red-900">
+                        <button
+                          onClick={() => handleDeleteRecord(record._id)}
+                          className="p-1 text-red-600 hover:text-red-900"
+                        >
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
@@ -190,6 +387,23 @@ export default function DeathRegistration() {
             </table>
           )}
         </div>
+
+        {isPaymentModalVisible && (
+          <PaymentModal
+            selectedRecord={selectedRecord}
+            setIsPaymentModalVisible={setIsPaymentModalVisible}
+            setRecords={setRecords}
+            isDeathRecord={true}
+          />
+        )}
+
+        {isViewModalVisible && (
+          <ViewRecordModal
+            record={viewRecord}
+            setIsViewModalVisible={setIsViewModalVisible}
+            recordType="death"
+          />
+        )}
       </div>
     </DashboardLayout>
   );

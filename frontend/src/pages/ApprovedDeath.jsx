@@ -1,29 +1,23 @@
-import React, { useState, useEffect } from 'react'
-import DashboardLayout from '../components/layout'
-
-// Mock function to simulate fetching approved death certificates
-const fetchApprovedDeathCertificates = () => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve([
-        { id: 201, image: "/placeholder.svg", fullName: "Mohamed Ahmed", dateOfDeath: "5/15/2023", gender: "Male", address: "Wartanabada", paymentStatus: "Approved" },
-        { id: 202, image: "/placeholder.svg", fullName: "Fatima Hassan", dateOfDeath: "6/22/2023", gender: "Female", address: "Yaqshid", paymentStatus: "Approved" },
-        { id: 203, image: "/placeholder.svg", fullName: "Ahmed Ali Hassan", dateOfDeath: "7/12/2023", gender: "Male", address: "Wartanabada", paymentStatus: "Approved" },
-      ])
-    }, 500)
-  })
-}
+import React, { useState, useEffect } from 'react';
+import DashboardLayout from '../components/layout';
+import { fetchApprovedDodRecords } from '../services/dodService'; // Ensure you have this service function
 
 export default function ApprovedDeathCertificates() {
-  const [certificates, setCertificates] = useState([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [certificates, setCertificates] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    fetchApprovedDeathCertificates().then((data) => {
-      setCertificates(data)
-      setIsLoading(false)
-    })
-  }, [])
+    fetchApprovedDodRecords()
+      .then((data) => {
+        console.log('Fetched Approved Death Records:', data); // Log the data to inspect its structure
+        setCertificates(data);
+        setIsLoading(false);
+      })
+      .catch((error) => {
+        console.error('Error loading approved records:', error);
+        setIsLoading(false);
+      });
+  }, []);
 
   return (
     <DashboardLayout>
@@ -38,29 +32,29 @@ export default function ApprovedDeathCertificates() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 uppercase">ID</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 uppercase">Sequence ID</th> {/* Changed header */}
                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 uppercase">Image</th>
                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 uppercase">Full Name</th>
                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 uppercase">Date of Death</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 uppercase">Gender</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 uppercase">Address</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 uppercase">Cause of Death</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 uppercase">Place of Death</th>
                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 uppercase">Payment Status</th>
                   </tr>
                 </thead>
                 <tbody>
                   {certificates.map((certificate) => (
-                    <tr key={certificate.id} className="border-b last:border-b-0">
-                      <td className="py-3 px-4">{certificate.id}</td>
+                    <tr key={certificate._id} className="border-b last:border-b-0">
+                      <td className="py-3 px-4">{certificate.id || 'N/A'}</td> {/* Adjust to your actual ID field */}
                       <td className="py-3 px-4">
-                        <img src={certificate.image} alt="" className="w-10 h-10 rounded-full object-cover" />
+                        <img src={certificate.image || "/placeholder.svg"} alt="" className="w-10 h-10 rounded-full object-cover" />
                       </td>
-                      <td className="py-3 px-4">{certificate.fullName}</td>
-                      <td className="py-3 px-4">{certificate.dateOfDeath}</td>
-                      <td className="py-3 px-4">{certificate.gender}</td>
-                      <td className="py-3 px-4">{certificate.address}</td>
+                      <td className="py-3 px-4">{certificate.dob ? certificate.dob.fullName : 'N/A'}</td> {/* Access fullName */}
+                      <td className="py-3 px-4">{new Date(certificate.dateOfDeath).toLocaleDateString()}</td>
+                      <td className="py-3 px-4">{certificate.causeOfDeath}</td>
+                      <td className="py-3 px-4">{certificate.placeOfDeath?.discName || 'N/A'}</td> {/* Check for discName */}
                       <td className="py-3 px-4">
                         <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
-                          {certificate.paymentStatus}
+                          {certificate.paymentStatus === 1 ? 'Approved' : 'Pending'}
                         </span>
                       </td>
                     </tr>
@@ -72,5 +66,5 @@ export default function ApprovedDeathCertificates() {
         </div>
       </div>
     </DashboardLayout>
-  )
+  );
 }

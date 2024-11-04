@@ -1,22 +1,45 @@
 import React, { useState, useEffect } from 'react';
 import DashboardLayout from '../components/layout';
 import { fetchApprovedDobRecords } from '../services/dobService';
+import { getAllDistricts } from '../services/districtService';
 
 export default function ApprovedBirthCertificates() {
   const [certificates, setCertificates] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [districts, setDistricts] = useState([]);
+  const [districtMap, setDistrictMap] = useState({});
 
   useEffect(() => {
+    // Fetch districts to create a mapping
+    getAllDistricts()
+      .then((data) => {
+        setDistricts(data);
+        const mapping = data.reduce((acc, district) => {
+          acc[district._id] = district.discName;
+          return acc;
+        }, {});
+        setDistrictMap(mapping);
+      })
+      .catch((error) => {
+        console.error("Error fetching districts:", error);
+      });
+
+    // Fetch approved birth records
     fetchApprovedDobRecords()
       .then((data) => {
-        setCertificates(data);
+        const mappedCertificates = data.map((certificate) => ({
+          ...certificate,
+          address: districtMap[certificate.address] || 'N/A', // Map address using districtMap
+          placeOfBirth: districtMap[certificate.placeOfBirth] || 'N/A', // Map place of birth
+        }));
+        setCertificates(mappedCertificates);
         setIsLoading(false);
       })
       .catch((error) => {
         console.error('Error loading approved records:', error);
         setIsLoading(false);
       });
-  }, []);
+  }, [districtMap]); // Adding districtMap as a dependency
 
   return (
     <DashboardLayout>
@@ -36,6 +59,7 @@ export default function ApprovedBirthCertificates() {
                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 uppercase">Full Name</th>
                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 uppercase">Date of Birth</th>
                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 uppercase">Gender</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 uppercase">Place of Birth</th>
                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 uppercase">Address</th>
                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-500 uppercase">Payment Status</th>
                   </tr>
@@ -50,7 +74,8 @@ export default function ApprovedBirthCertificates() {
                       <td className="py-3 px-4">{certificate.fullName}</td>
                       <td className="py-3 px-4">{new Date(certificate.dob).toLocaleDateString()}</td>
                       <td className="py-3 px-4">{certificate.gender}</td>
-                      <td className="py-3 px-4">{certificate.address.discName}</td>
+                      <td className="py-3 px-4">{certificate.placeOfBirth}</td> {/* Display Place of Birth */}
+                      <td className="py-3 px-4">{certificate.address}</td> {/* Display Address */}
                       <td className="py-3 px-4">
                         <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
                           {certificate.paymentStatus === 1 ? 'Approved' : 'Pending'}
