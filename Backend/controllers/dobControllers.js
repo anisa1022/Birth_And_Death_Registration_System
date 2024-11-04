@@ -6,16 +6,13 @@ export const createDobRecord = async (req, res) => {
   try {
     console.log("Incoming request body:", req.body);
     const { fullName, image, placeOfBirth, dob, gender, materialState, address, motherName, occupation } = req.body;
-
+ 
     const allDistricts = await District.find({});
     console.log("Available Districts:", allDistricts.map(d => ({ id: d._id, name: d.discName })));
-
 
     const trimmedPlaceOfBirth = placeOfBirth.trim();
     const trimmedAddress = address.trim();
 
-    // const placeOfBirthDistrict = await District.findOne({ discName: trimmedPlaceOfBirth });
-    // const addressDistrict = await District.findOne({ discName: trimmedAddress });
     const placeOfBirthDistrict = await District.findOne({ _id: trimmedPlaceOfBirth });
     const addressDistrict = await District.findOne({ _id: trimmedAddress });
 
@@ -63,27 +60,6 @@ export const createDobRecord = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
-// Get all date of birth records
-// export const getAllDobRecords = async (req, res) => {
-//   try {
-//     const dobRecords = await Dob.find()
-//       .populate('placeOfBirth address', 'discName')  // Only get district name for readability
-//       .select('-__v');  // Exclude the `__v` field from the response
-
-//     const formattedRecords = dobRecords.map(record => ({
-//       ...record._doc,
-//       dateOfIssue: record.dateOfIssue.toISOString().split('T')[0],
-//       expirationDate: record.expirationDate.toISOString().split('T')[0],
-//       dob: record.dob.toISOString().split('T')[0]
-//     }));
-
-//     res.status(200).json(formattedRecords);
-//   } catch (error) {
-//     res.status(500).json({ message: error.message });
-//   }
-// };
-// dobController.js
 // Get all date of birth records
 export const getAllDobRecords = async (req, res) => {
   try {
@@ -172,7 +148,6 @@ export const updateDobRecord = async (req, res) => {
   }
 };
 
-
 // Delete a date of birth record
 export const deleteDobRecord = async (req, res) => {
   try {
@@ -228,3 +203,61 @@ export const getPendingDobRecords = async (req, res) => {
   }
 };
 
+
+export const getBirthRecordDetails = async (req, res) => {
+  try {
+    const {  id } = req.params;
+
+    const dobRecord = await Dob.findById(id)
+      .populate('placeOfBirth address', 'discName')
+      .select('-__v'); // Exclude version key
+
+    if (!dobRecord) {
+      return res.status(404).json({ message: "Record not found" });
+    }
+
+    const formattedRecord = {
+      fullName: dobRecord.fullName,
+      image : dobRecord.image,
+      dateOfBirth: dobRecord.dob.toISOString().split('T')[0], // Format to YYYY-MM-DD
+      placeOfBirth: dobRecord.placeOfBirth ? dobRecord.placeOfBirth.discName : 'N/A',
+      idNumber: dobRecord.dobId,
+      gender: dobRecord.gender,
+      maritalStatus: dobRecord.materialState || 'N/A', // Ensure it's defined
+      address: dobRecord.address ? dobRecord.address.discName : 'N/A',
+      motherName: dobRecord.motherName || 'N/A',
+      dateOfIssue: dobRecord.dateOfIssue.toISOString().split('T')[0],
+      occupation: dobRecord.occupation || 'N/A',
+      photo: dobRecord.image || '/default-image.png', // Fallback image if not provided
+      mayorName: 'Cumar Maxamuud Maxamed' // Static value for now
+    };
+
+    res.status(200).json(formattedRecord);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
+
+export const getTotalDobRecords = async (req, res) => {
+  try {
+    const totalDobRecords = await Dob.countDocuments();
+    res.status(200).json({ totalDobRecords });
+  } catch (error) {
+    console.error("Error in getTotalDobRecords:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Get total approved birth records
+export const getTotalApprovedDobRecords = async (req, res) => {
+  try {
+    const totalApprovedDobRecords = await Dob.countDocuments({ paymentStatus: 1 });
+    res.status(200).json({ totalApprovedDobRecords });
+  } catch (error) {
+    console.error("Error in getTotalApprovedDobRecords:", error);
+    res.status(500).json({ message: error.message });
+  }
+};

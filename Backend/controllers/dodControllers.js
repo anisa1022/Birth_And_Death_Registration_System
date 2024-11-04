@@ -5,41 +5,6 @@ import mongoose from 'mongoose';
 
 // Get all date of death records
 
-// export const createDodRecord = async (req, res) => {
-//   try {
-//     const { fullName, dob, image, dateOfDeath, causeOfDeath, placeOfDeath } = req.body;
-
-//     const birthRecord = await Dob.findById(dob);
-//     if (!birthRecord) {
-//       return res.status(400).json({ message: "Person does not exist. Please provide a valid birth certificate ID." });
-//     }
-
-//     const placeOfDeathDistrict = await District.findById(placeOfDeath);
-//     if (!placeOfDeathDistrict) {
-//       return res.status(400).json({ message: "Invalid district ID for placeOfDeath" });
-//     }
-
-//     const lastRecord = await Dod.findOne().sort({ id: -1 });
-//     const newId = lastRecord && lastRecord.id ? lastRecord.id + 1 : 101;
-
-//     const newDod = new Dod({
-//       id: newId,
-//       fullName,
-//       dob: birthRecord._id,
-//       image,
-//       dateOfDeath,
-//       causeOfDeath,
-//       placeOfDeath: placeOfDeathDistrict._id,
-//       paymentStatus: 0 // Default to Pending
-//     });
-
-//     const savedDod = await newDod.save();
-//     res.status(201).json(savedDod);
-//   } catch (error) {
-//     console.error("Error in createDodRecord:", error);
-//     res.status(500).json({ message: error.message });
-//   }
-// };
 export const createDodRecord = async (req, res) => {
   try {
     console.log("incoming data" , req.body)
@@ -92,15 +57,7 @@ export const getAllDodRecords = async (req, res) => {
 };
 
 // Get a single date of death record by ID
-// export const getDodRecordById = async (req, res) => {
-//   try {
-//     const dodRecord = await Dod.findById(req.params.id).populate('placeOfDeath', 'discName');
-//     if (!dodRecord) return res.status(404).json({ message: "Record not found" });
-//     res.status(200).json(dodRecord);
-//   } catch (error) {
-//     res.status(500).json({ message: error.message });
-//   }
-// };
+
 export const getDodRecordById = async (req, res) => {
   try {
     const dodRecord = await Dod.findById(req.params.id)
@@ -114,43 +71,6 @@ export const getDodRecordById = async (req, res) => {
 };
 
 // Update a date of death record
-// export const updateDodRecord = async (req, res) => {
-//   try {
-//     const { fullName, dob, image, dateOfDeath, causeOfDeath, placeOfDeath } = req.body;
-
-//     // Validate the dob ID exists in the Dob collection
-//     const birthRecord = await Dob.findById(dob);
-//     if (!birthRecord) {
-//       return res.status(400).json({ message: "Person does not exist. Please provide a valid birth certificate ID." });
-//     }
-
-//     // Validate the placeOfDeath ID exists in the District collection
-//     const placeOfDeathDistrict = await District.findById(placeOfDeath);
-//     if (!placeOfDeathDistrict) {
-//       return res.status(400).json({ message: "Invalid district ID for placeOfDeath" });
-//     }
-
-//     const updatedData = {
-//       fullName,
-//       dob: birthRecord._id, // Ensure dob is the correct ObjectId
-//       image,
-//       dateOfDeath,
-//       causeOfDeath,
-//       placeOfDeath: placeOfDeathDistrict._id,
-//     };
-
-//     const updatedDod = await Dod.findByIdAndUpdate(req.params.id, updatedData, { new: true })
-//       .populate('placeOfDeath', 'discName')
-//       .populate('dob', 'dobId'); // Populate dobId for displaying in frontend
-
-//     if (!updatedDod) return res.status(404).json({ message: "Record not found" });
-
-//     res.status(200).json(updatedDod);
-//   } catch (error) {
-//     console.error("Error in updateDodRecord:", error);
-//     res.status(500).json({ message: error.message });
-//   }
-// };
 
 export const updateDodRecord = async (req, res) => {
   try {
@@ -191,7 +111,6 @@ export const updateDodRecord = async (req, res) => {
   }
 };
 
-
 // Delete a date of death record
 export const deleteDodRecord = async (req, res) => {
   try {
@@ -231,3 +150,85 @@ export const getPendingDodRecords = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+export const fetchDodRecordDetails = async (req, res) => {
+  const { dod_id } = req.params;
+  console.log('Dod ID:', dod_id);
+
+  if (!mongoose.Types.ObjectId.isValid(dod_id)) {
+    return res.status(400).json({ message: 'Invalid Dod ID format' });
+  }
+
+  try {
+    // Find the Dod record by ID and populate related fields from Dob and District
+    const dodRecord = await Dod.findById(dod_id)
+      .select('id image dateOfDeath causeOfDeath placeOfDeath')
+      .populate({
+        path: 'dob',
+        model: Dob,
+        select: 'fullName dobId motherName gender occupation dob address',
+        populate: {
+          path: 'address',
+          model: District, // Assuming `address` references District collection for discName
+          select: 'discName',
+        },
+      })
+      .populate({
+        path: 'placeOfDeath',
+        model: District,
+        select: 'discName',
+      });
+
+    if (!dodRecord) {
+      return res.status(404).json({ message: 'Record not found' });
+    }
+
+    // Prepare response with fields from Dod, Dob, and District
+    const responseData = {
+      dodSequenceID: dodRecord.id,
+      image: dodRecord.image,
+      dateOfDeath: dodRecord.dateOfDeath,
+      causeOfDeath: dodRecord.causeOfDeath,
+      placeOfDeath: dodRecord.placeOfDeath ? dodRecord.placeOfDeath.discName : null,
+      fullName: dodRecord.dob ? dodRecord.dob.fullName : null,
+      dobSequenceID: dodRecord.dob ? dodRecord.dob.dobId : null,
+      motherName: dodRecord.dob ? dodRecord.dob.motherName : null,
+      gender: dodRecord.dob ? dodRecord.dob.gender : null,
+      dateOfBirth: dodRecord.dob ? dodRecord.dob.dob : null,
+      address: dodRecord.dob ? dodRecord.dob.address : null,
+      occupation: dodRecord.dob ? dodRecord.dob.occupation : null, // Ensure this exists
+
+    };
+
+    res.status(200).json(responseData);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error fetching record details' });
+  }
+};
+
+// Get total death records
+export const getTotalDodRecords = async (req, res) => {
+  try {
+    const totalDodRecords = await Dod.countDocuments();
+    res.status(200).json({ totalDodRecords });
+  } catch (error) {
+    console.error("Error in getTotalDodRecords:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Get total approved death records
+export const getTotalApprovedDodRecords = async (req, res) => {
+  try {
+    const totalApprovedDodRecords = await Dod.countDocuments({ paymentStatus: 1 });
+    res.status(200).json({ totalApprovedDodRecords });
+  } catch (error) {
+    console.error("Error in getTotalApprovedDodRecords:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
+
+

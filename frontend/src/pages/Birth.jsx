@@ -2,13 +2,12 @@ import { useState, useEffect } from 'react';
 import DashboardLayout from '../components/layout.jsx';
 import ViewRecordModal from '../components/ViewRecordModal.jsx';
 import { Plus, Trash2, Edit, Eye } from 'lucide-react';
-import { createDobRecord, getAllDobRecords, deleteDobRecord, updateDobRecord, fetchPendingDobRecords  } from '../services/dobService.js';
+import { createDobRecord, deleteDobRecord, updateDobRecord, fetchPendingDobRecords ,fetchBirthRecordDetails } from '../services/dobService.js';
 import { getAllDistricts } from '../services/districtService.js';
 import PaymentModal from '../components/PaymentModel.jsx';
 import { updatePaymentStatus } from '../services/paymentService.js';
 import toast, { Toaster } from 'react-hot-toast';
-
-
+import CertificateDetails from '../components/BirthCertificate.jsx'; // Importing the BirthCertificate component
 
 export default function BirthRegistration() {
   const [records, setRecords] = useState([]);
@@ -31,8 +30,9 @@ export default function BirthRegistration() {
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState(null);
-  const [isViewModalVisible, setIsViewModalVisible] = useState(false); 
+  // const [isViewModalVisible, setIsViewModalVisible] = useState(false); 
   const [viewRecord, setViewRecord] = useState(null);
+  const [showCertificateModal, setShowCertificateModal] = useState(false);
 
   useEffect(() => {
     fetchPendingDobRecords()
@@ -56,6 +56,7 @@ export default function BirthRegistration() {
         acc[district._id] = district.discName;
         return acc;
       }, {});
+      console.log('District Mapping:', districtMapping);
       setDistrictMap(districtMapping);
     }).catch((error) => {
       console.error("Error fetching districts:", error);
@@ -79,83 +80,57 @@ export default function BirthRegistration() {
     const hasNumbers = /\d/.test(input);
     return !hasNumbers; // Return true if there are no numbers
   }
-  const validateForm = () => {
+    const handleAddRecord = async (e) => {
+    e.preventDefault();
+    console.log("Form submitted");
     const { fullName, dob, gender, materialState, motherName, placeOfBirth, occupation, address } = formData;
 
+    console.log("Form Data:", formData);
     // Check if all required fields are filled
     if (!fullName || !dob || !gender || !materialState || !motherName || !placeOfBirth || !occupation || !address || !image) {
       toast.error("Please fill all required fields and upload an image.");
-      return false;
+      return; // Prevent proceeding
     }
-
-    // Check for three words in fullName and motherName
-    if (fullName.trim().split(/\s+/).length < 3) {
-      toast.error("Full Name must have at least three words.");
-      return false;
-    }
-
-    if (motherName.trim().split(/\s+/).length < 3) {
-      toast.error("Mother's Name must have at least three words.");
-      return false;
-    }
-
-    // Prevent numbers in occupation and motherName
-    if (/\d/.test(formData.occupation)) {
-      toast.error("Occupation should not contain numbers.");
-      return false;
-    }
-
-    if (/\d/.test(formData.motherName)) {
-      toast.error("Mother's Name should not contain numbers.");
-      return false;
-    }
-
-    return true;
-  };
-  const handleAddRecord = async (e) => {
-    e.preventDefault();
-    const { fullName, dob, gender, materialState, motherName, placeOfBirth, occupation, address } = formData;
-    if (!validateForm()) {
-      return;
-    }
-    
     try {
-      let base64Image = '';
+      let base64Image = null;
       if (image) {
-        const reader = new FileReader();
-        reader.readAsDataURL(image);
-        base64Image = await new Promise((resolve) => {
-          reader.onload = () => resolve(reader.result);
-        });
+          const reader = new FileReader();
+          reader.readAsDataURL(image);
+          base64Image = await new Promise((resolve) => {
+              reader.onload = () => resolve(reader.result);
+          });
       }
 
       const newRecord = {
-        fullName,
-        dob,
-        gender,
-        materialState,
-        motherName,
-        placeOfBirth,
-        occupation,
-        address,
-        image: base64Image,
-        paymentStatus: 0,
+          fullName,
+          dob,
+          gender,
+          materialState,
+          motherName,
+          placeOfBirth,
+          occupation,
+          address,
+          image: base64Image,
+          paymentStatus: 0,
       };
 
       if (editingId) {
-        await updateDobRecord(editingId, newRecord);
-        setRecords(records.map((record) => (record._id === editingId ? { ...record, ...newRecord } : record)));
-        setEditingId(null);
+          await updateDobRecord(editingId, newRecord);
+          setRecords(records.map((record) => (record._id === editingId ? { ...record, ...newRecord } : record)));
+          setEditingId(null);
       } else {
-        const createdRecord = await createDobRecord(newRecord);
-        setRecords([...records, createdRecord]);
+          const createdRecord = await createDobRecord(newRecord); // Handle any errors here
+          setRecords([...records, createdRecord]);
       }
 
       resetForm();
+      toast.success(editingId ? "Record updated successfully!" : "Record added successfully!");
     } catch (error) {
-      console.error("Error creating or updating record:", error);
+        console.error("Error creating or updating record:", error);
+        toast.error("Failed to save record."); // Notify user on failure
     }
-  };
+};
+
 
   const handleEditRecord = (record) => {
     setFormData({
@@ -164,9 +139,9 @@ export default function BirthRegistration() {
       gender: record.gender,
       materialState: record.materialState,
       motherName: record.motherName,
-      placeOfBirth: record.placeOfBirth._id,
+      placeOfBirth: record.placeOfBirth,
       occupation: record.occupation,
-      address: record.address._id,
+      address: record.address,
     });
     setImagePreview(record.image);
     setEditingId(record._id);
@@ -182,9 +157,35 @@ export default function BirthRegistration() {
     }
   };
 
-  const handleViewRecordClick = (record) => {
-    setViewRecord(record);
-    setIsViewModalVisible(true);
+  // const handleViewRecordClick = (record) => {
+  //   setViewRecord(record);
+  //   setIsViewModalVisible(true);
+  // };
+
+  const handleViewRecordClick = async (record) => {
+    try {
+      const dobDetails = await fetchBirthRecordDetails(record._id); // Call the new service function
+
+      setViewRecord({
+        fullName: dobDetails.fullName || 'N/A',
+        dateOfBirth: dobDetails.dob || 'N/A',
+        placeOfBirth: dobDetails.placeOfBirth || 'N/A',
+        idNumber: dobDetails.dobId || 'N/A',
+        gender: dobDetails.gender || 'N/A',
+        maritalStatus: dobDetails.materialState|| 'N/A',
+        address: dobDetails.address || 'N/A',
+        motherName: dobDetails.motherName || 'N/A',
+        dateOfIssue: dobDetails.dateOfIssue || 'N/A',
+        occupation: dobDetails.occupation || 'N/A',
+        photo: dobDetails.image || '/placeholder.svg',
+        mayorName: 'Cumar Maxamuud Maxamed',
+        
+      });
+
+      setShowCertificateModal(true); // Open the certificate modal directly
+    } catch (error) {
+      console.error("Error fetching birth record:", error);
+    }
   };
 
   const resetForm = () => {
@@ -225,26 +226,34 @@ export default function BirthRegistration() {
       console.error("Error approving payment:", error);
     }
   };
-  const handleInputChange = (field, value) => {
-    if (field === 'fullName' || field === 'motherName') {
-      // Check for three words
-      if (!validateThreeWords(value)) {
-        toast.error(`${field === 'fullName' ? 'Full Name' : "Mother's Name"} must have at least three words.`);
-      }
-    }
+const handleInputChange = (field, value) => {
+  setFormData({ ...formData, [field]: value });
+};
 
-    if (field === 'occupation' || field === 'motherName') {
-      // Prevent numbers in occupation and mother's name
-      if (!preventNumbers(value)) {
-        toast.error(`${field === 'occupation' ? 'Occupation' : "Mother's Name"} should not contain numbers.`);
-        return; // Stop further processing if invalid input
-      }
+// New function for handling blur event specifically for validations
+const handleBlurValidation = (field, value) => {
+  if (field === 'fullName') {
+    if (!validateThreeWords(value)) {
+      toast.error('Full Name must have at least three words.');
     }
+  }
 
-    setFormData({ ...formData, [field]: value });
-  };
+  if (field === 'motherName') {
+    if (!validateThreeWords(value)) {
+      toast.error("Mother's Name must have at least three words.");
+    }
+  }
+
+  if (field === 'occupation' || field === 'motherName') {
+    if (!preventNumbers(value)) {
+      toast.error(`${field === 'occupation' ? 'Occupation' : "Mother's Name"} should not contain numbers.`);
+    }
+  }
+};
+
   return (
     <DashboardLayout>
+      <Toaster position="top-right" reverseOrder={false} />
       <div className="max-w-6xl mx-auto">
         <h2 className="text-2xl font-bold mb-6">Birth Registration</h2>
 
@@ -264,6 +273,7 @@ export default function BirthRegistration() {
                   type="text"
                   value={formData.fullName}
                   onChange={(e) => handleInputChange('fullName', e.target.value)}
+                  onBlur={() => handleBlurValidation('fullName', formData.fullName)}
                   onKeyDown={(e) => {
                     if (e.key >= '0' && e.key <= '9') {
                       e.preventDefault();
@@ -301,6 +311,7 @@ export default function BirthRegistration() {
                   type="text"
                   value={formData.motherName}
                   onChange={(e) => handleInputChange('motherName', e.target.value)}
+                  onBlur={() => handleBlurValidation('motherName', formData.motherName)}
                   onKeyDown={(e) => {
                     if (e.key >= '0' && e.key <= '9') {
                       e.preventDefault();
@@ -325,6 +336,7 @@ export default function BirthRegistration() {
                   type="text"
                   value={formData.occupation}
                   onChange={(e) => handleInputChange('occupation', e.target.value)}
+                  onBlur={() => handleBlurValidation('occupation', formData.occupation)}
                   placeholder="Occupation"
                   className="px-4 py-2 border rounded-lg"
                 />
@@ -341,7 +353,7 @@ export default function BirthRegistration() {
                   ))}
                 </select>
                 <button
-                  type="button"
+                  type="submit"
                   onClick={handleAddRecord}
                   className="col-span-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                 >
@@ -436,11 +448,10 @@ export default function BirthRegistration() {
             isDeathRecord={false} 
           />
         )}
-        {isViewModalVisible && (
-          <ViewRecordModal
-            record={viewRecord}
-            setIsViewModalVisible={setIsViewModalVisible}
-            recordType="birth"
+        {showCertificateModal && viewRecord && (
+          <CertificateDetails
+            certificate={viewRecord}
+            onClose={() => setShowCertificateModal(false)}
           />
         )}
       </div>

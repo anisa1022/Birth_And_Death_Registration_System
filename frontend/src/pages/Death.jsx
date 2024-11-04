@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import DashboardLayout from '../components/layout';
 import { Eye, Edit, Trash2, Plus } from 'lucide-react';
-import ViewRecordModal from '../components/ViewRecordModal';
 import PaymentModal from '../components/PaymentModel';
 import toast, { Toaster } from 'react-hot-toast';
-import { fetchPendingDodRecords, deleteDodRecord, createDodRecord, updateDodRecord ,getDodRecordById} from '../services/dodService';
+import { fetchPendingDodRecords, deleteDodRecord, createDodRecord, updateDodRecord ,getDodRecordById , fetchDodRecordDetails} from '../services/dodService';
 import { getAllDistricts } from '../services/districtService';
 import { getAllDobRecords } from '../services/dobService';
+import DeathCertificateGenerator from '../components/DeathCertificate.jsx';
 
 export default function DeathRegistration() {
   const [showForm, setShowForm] = useState(false);
@@ -24,10 +24,13 @@ export default function DeathRegistration() {
   const [imagePreview, setImagePreview] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false);
-  const [isViewModalVisible, setIsViewModalVisible] = useState(false);
+  // const [isViewModalVisible, setIsViewModalVisible] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState(null);
-  const [viewRecord, setViewRecord] = useState(null);
+  // const [viewRecord, setViewRecord] = useState(null);
   const [districtMap, setDistrictMap] = useState({});
+  const [showCertificateModal, setShowCertificateModal] = useState(false);
+  // const [isDeathCertificateVisible, setIsDeathCertificateVisible] = useState(false);
+
 
   useEffect(() => {
     fetchPendingDodRecords()
@@ -45,7 +48,7 @@ export default function DeathRegistration() {
         setDistrictMap(mapping); // Set the districtMap
       })
       .catch((error) => console.error("Error fetching districts:", error));
-    getAllDobRecords()
+      getAllDobRecords()
       .then((data) => setDobRecords(data))
       .catch((error) => console.error("Error fetching dob records:", error));
   }, []);
@@ -140,6 +143,7 @@ export default function DeathRegistration() {
         await updateDodRecord(editingId, payload);
         updatedRecords = records.map((record) => (record._id === editingId ? { ...record, ...payload } : record));
         setEditingId(null);
+        
       } else {
         const createdRecord = await createDodRecord(payload);
         updatedRecords = [...records, createdRecord];
@@ -156,8 +160,6 @@ export default function DeathRegistration() {
       toast.error("Failed to save record.");
     }
   };
-  
-  
   const handlePendingPaymentClick = (record) => {
     setSelectedRecord({
       ...record,
@@ -167,44 +169,37 @@ export default function DeathRegistration() {
     });
     setIsPaymentModalVisible(true);
   };
-
-  // const handlePaymentApproval = async (recordId) => {
-  //   try {
-  //     await updatePaymentStatus({ certificate_Id: recordId, PaymentType: 'Death Certificate' });
-  //     setRecords((prevRecords) => prevRecords.filter((record) => record._id !== recordId));
-  //     setIsPaymentModalVisible(false);
-  //     toast.success("Payment approved and record removed from pending!");
-  //   } catch (error) {
-  //     console.error("Error approving payment:", error);
-  //     toast.error("Failed to approve payment.");
-  //   }
-  // };
-
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    const options = { year: 'numeric', month: '2-digit', day: '2-digit' };
+    return date.toLocaleDateString('en-US', options);
+  };
   const handleViewRecordClick = async (record) => {
-    if (!record || !record._id) {
-      console.error("Record or id is missing:", record);
-      return; // Exit if the record ID is not available
-    }
-  
     try {
-      // Fetch the death record using _id
-      const deathRecord = await getDodRecordById(record._id);
-      
-      // Extract relevant details
-      const fullName = deathRecord.dob?.fullName || 'N/A'; // Access fullName from related dob record if necessary
-      const placeOfDeath = districtMap[deathRecord.placeOfDeath] || 'N/A'; // Get the discName from districtMap
-  
-      setViewRecord({
-        ...deathRecord,
-        fullName: fullName,
-        placeOfDeath: placeOfDeath,
+      const dodDetails = await fetchDodRecordDetails(record._id);
+      console.log('Dod Details:', dodDetails);  
+      setSelectedRecord({ 
+        fullName: dodDetails.fullName || 'N/A',
+        dateOfBirth: formatDate(dodDetails.dateOfBirth) || 'N/A',
+        placeOfBirth: dodDetails.placeOfDeath || 'N/A', 
+        idNumber: dodDetails.dobSequenceID || 'N/A',    
+        gender: dodDetails.gender || 'N/A',
+        address: dodDetails.address || 'N/A',
+        motherName: dodDetails.motherName || 'N/A',
+        dateOfIssue: formatDate(dodDetails.dateOfDeath) || 'N/A', 
+        photo: dodDetails.image || '/placeholder.svg',
+        mayorName: 'Cumar Maxamuud Maxamed', 
+        causeOfDeath: dodDetails.causeOfDeath || 'N/A', 
+        placeOfDeath: dodDetails.placeOfDeath || 'N/A', 
       });
-      setIsViewModalVisible(true);
+      
+  
+      setShowCertificateModal(true); // Open the certificate modal
     } catch (error) {
       console.error("Error fetching death record:", error);
     }
   };
-  
   const handleEditRecord = (record) => {
     setNewRecord({
       dob: record.dob._id,
@@ -397,13 +392,13 @@ export default function DeathRegistration() {
           />
         )}
 
-        {isViewModalVisible && (
-          <ViewRecordModal
-            record={viewRecord}
-            setIsViewModalVisible={setIsViewModalVisible}
-            recordType="death"
-          />
+        {showCertificateModal && selectedRecord && (
+            <DeathCertificateGenerator
+                certificate={selectedRecord}
+                onClose={() => setShowCertificateModal(false)}
+            />
         )}
+
       </div>
     </DashboardLayout>
   );

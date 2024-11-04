@@ -77,3 +77,35 @@ export const getDodRecordById = async (id) => {
     throw error; // Rethrow the error for handling in the calling function
   }
 };
+
+export const fetchDodRecordDetails = async (dodId) => {
+  try {
+    const response = await axios.get(`${API_URL}/${dodId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching Dod record details:', error);
+    throw error; // Rethrow the error for handling in the component
+  }
+};
+
+export const fetchTotalDodRecords = async () => {
+  try {
+    const response = await axios.get(`${API_URL}/total-dod`); // Update the API endpoint as necessary
+    return response.data.totalDodRecords; // Return the total number of death records
+  } catch (error) {
+    console.error("Error fetching total death records:", error);
+    throw error; // Throw the error to be handled by the caller
+  }
+};
+
+// Fetch total approved death records
+export const fetchTotalApprovedDodRecords = async () => {
+  try {
+    const response = await axios.get(`${API_URL}/total-approved-dod`); // Update the API endpoint as necessary
+    return response.data.totalApprovedDodRecords; // Return the total number of approved death records
+  } catch (error) {
+    console.error("Error fetching total approved death records:", error);
+    throw error; // Throw the error to be handled by the caller
+  }
+};
+

@@ -7,6 +7,9 @@ import {
   deleteDobRecord,
   getApprovedDobRecords,
   getPendingDobRecords,
+  getBirthRecordDetails,
+  getTotalDobRecords,
+  getTotalApprovedDobRecords,
 } from '../controllers/dobControllers.js';
 
 const router = express.Router();
@@ -30,5 +33,10 @@ router.get('/approved', getApprovedDobRecords); // This will handle /api/dob/app
 
 router.get('/pending', getPendingDobRecords); 
 
+router.get('/total-dob', getTotalDobRecords);
+router.get('/total-approved-dob', getTotalApprovedDobRecords);
+
 router.get('/:id', getDobRecordById);
+router.get('/birth/:id', getBirthRecordDetails);
+
 export default router;

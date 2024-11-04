@@ -13,6 +13,7 @@ export default function ApprovedBirthCertificates() {
     // Fetch districts to create a mapping
     getAllDistricts()
       .then((data) => {
+        console.log('Fetched Approved Death Records:', data);
         setDistricts(data);
         const mapping = data.reduce((acc, district) => {
           acc[district._id] = district.discName;
