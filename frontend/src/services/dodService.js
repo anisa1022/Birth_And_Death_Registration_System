@@ -109,3 +109,27 @@ export const fetchTotalApprovedDodRecords = async () => {
   }
 };
 
+ // Replace with your actual API base URL
+
+// Fetch total male death records
+export const fetchTotalMaleDeathRecords = async () => {
+  try {
+    const response = await axios.get(`${API_URL}/total-male`);
+    return response.data; // Return the count of male deaths
+  } catch (error) {
+    console.error("Error fetching total male death records:", error);
+    throw error; // Rethrow the error for further handling
+  }
+};
+
+// Fetch total female death records
+export const fetchTotalFemaleDeathRecords = async () => {
+  try {
+    const response = await axios.get(`${API_URL}/total-female`);
+    return response.data; // Return the count of female deaths
+  } catch (error) {
+    console.error("Error fetching total female death records:", error);
+    throw error; // Rethrow the error for further handling
+  }
+};
+

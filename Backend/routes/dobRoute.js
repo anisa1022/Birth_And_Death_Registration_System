@@ -10,6 +10,8 @@ import {
   getBirthRecordDetails,
   getTotalDobRecords,
   getTotalApprovedDobRecords,
+  fetchTotalMaleBirthRecords,
+  fetchTotalFemaleBirthRecords
 } from '../controllers/dobControllers.js';
 
 const router = express.Router();
@@ -24,7 +26,7 @@ router.get('/', getAllDobRecords);
 
 
 // Route to update a date of birth record by ID
-router.put('/:id', updateDobRecord);
+
 
 // Route to delete a date of birth record by ID
 router.delete('/:id', deleteDobRecord);
@@ -36,6 +38,10 @@ router.get('/pending', getPendingDobRecords);
 router.get('/total-dob', getTotalDobRecords);
 router.get('/total-approved-dob', getTotalApprovedDobRecords);
 
+router.get('/total-male', fetchTotalMaleBirthRecords);
+router.get('/total-female', fetchTotalFemaleBirthRecords);
+
+router.put('/:id', updateDobRecord);
 router.get('/:id', getDobRecordById);
 router.get('/birth/:id', getBirthRecordDetails);
 

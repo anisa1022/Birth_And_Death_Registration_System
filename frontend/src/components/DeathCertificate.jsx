@@ -65,14 +65,15 @@ const CertificateDetails = ({ certificate, onClose }) => {
               <p className="text-sm text-gray-600">NUMBERKA KAARKA / ID Number</p>
               <p className="font-semibold">{certificate?.idNumber || 'N/A'}</p>
             </div>
-            <div className="space-y-1">
-              <p className="text-sm text-gray-600">JINSI / Gender</p>
-              <p className="font-semibold">{certificate?.gender || 'N/A'}</p>
-            </div>
+            
           </div>
 
           {/* Right Column */}
           <div className="space-y-4">
+            <div className="space-y-1">
+              <p className="text-sm text-gray-600">JINSI / Gender</p>
+              <p className="font-semibold">{certificate?.gender || 'N/A'}</p>
+            </div>
             <div className="space-y-1">
               <p className="text-sm text-gray-600">GOOBTA DHIMASHADA / Cause of Death</p>
               <p className="font-semibold">{certificate?.causeOfDeath || 'N/A'}</p>
@@ -85,10 +86,7 @@ const CertificateDetails = ({ certificate, onClose }) => {
               <p className="text-sm text-gray-600">TAARIIKHDA LA BIXIYAY / Date of Death</p>
               <p className="font-semibold">{certificate?.dateOfIssue || 'N/A'}</p>
             </div>
-            <div className="space-y-1">
-              <p className="text-sm text-gray-600">SHAQADA / Occupation</p>
-              <p className="font-semibold">{certificate?.occupation || 'N/A'}</p>
-            </div>
+            
           </div>
         </div>
 

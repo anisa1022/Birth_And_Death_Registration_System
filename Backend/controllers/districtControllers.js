@@ -1,4 +1,6 @@
-import District from '../models/districtsModel.js'
+// import Dod from '../models/dodModel.js';
+import District from '../models/districtsModel.js';
+// import Dob from '../models/dobModel.js'; 
 
 // Create a new district
 export const createDistrict = async (req, res) => {
@@ -63,6 +65,33 @@ export const deleteDistrict = async (req, res) => {
     if (!deletedDistrict) return res.status(404).json({ message: "District not found" });
     res.status(200).json({ message: "District deleted successfully" });
   } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const getBirthsAndDeathsByDistrict = async (req, res) => {
+  try {
+    const births = await Dob.aggregate([
+      {
+        $group: {
+          _id: "$placeOfBirth", // Group by placeOfBirth
+          totalBirths: { $sum: 1 }
+        }
+      }
+    ]);
+
+    const deaths = await Dod.aggregate([
+      {
+        $group: {
+          _id: "$placeOfDeath", // Group by placeOfDeath
+          totalDeaths: { $sum: 1 }
+        }
+      }
+    ]);
+
+    res.status(200).json({ births, deaths });
+  } catch (error) {
+    console.error("Error fetching birth and death data:", error);
     res.status(500).json({ message: error.message });
   }
 };

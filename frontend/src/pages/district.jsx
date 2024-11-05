@@ -8,6 +8,7 @@ export default function AddressRegistration() {
   const [newDistrict, setNewDistrict] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [editingId, setEditingId] = useState(null);
+  const [isFormVisible, setIsFormVisible] = useState(false);
 
   useEffect(() => {
     // Fetch all districts from the backend on component load
@@ -28,6 +29,7 @@ export default function AddressRegistration() {
         const createdDistrict = await createDistrict(newDistrictObj); // Create district in backend
         setDistricts([...districts, createdDistrict]); // Update state with new district
         setNewDistrict('');
+        setIsFormVisible(false); // Hide the form after adding
       } catch (error) {
         console.error("Error creating district:", error);
       }
@@ -60,26 +62,38 @@ export default function AddressRegistration() {
       <div className="max-w-4xl mx-auto">
         <h2 className="text-2xl font-bold mb-6">Address Registration</h2>
         
-        <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-          <h3 className="text-lg font-semibold mb-4">Add New District</h3>
-          <form onSubmit={handleAddDistrict} className="flex gap-4">
-            <input
-              type="text"
-              value={newDistrict}
-              onChange={(e) => setNewDistrict(e.target.value)}
-              className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Enter district name"
-            />
-            <button
-              type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Save Address
-            </button>
-          </form>
-        </div>
+        {/* Button to toggle form visibility */}
+        <button
+          onClick={() => setIsFormVisible(!isFormVisible)}
+          className="mb-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          {isFormVisible ? 'Hide Form' : 'Add District'}
+        </button>
 
+        {/* Add District Form, hidden initially */}
+        {isFormVisible && (
+          <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
+            <h3 className="text-lg font-semibold mb-4">Add New District</h3>
+            <form onSubmit={handleAddDistrict} className="flex gap-4">
+              <input
+                type="text"
+                value={newDistrict}
+                onChange={(e) => setNewDistrict(e.target.value)}
+                className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Enter district name"
+              />
+              <button
+                type="submit"
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center"
+              >
+                Save Address
+              </button>
+            </form>
+          </div>
+        )}
+
+        {/* Registered Districts Table */}
         <div className="bg-white rounded-xl shadow-sm p-6">
           <h3 className="text-lg font-semibold mb-4">Registered Districts</h3>
           {isLoading ? (

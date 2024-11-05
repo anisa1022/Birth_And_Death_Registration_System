@@ -24,13 +24,18 @@ const CertificateDetails = ({ certificate, onClose }) => {
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-75 z-50">
-      <div ref={certificateRef} className="max-w-5xl mx-auto bg-white p-8 shadow-lg rounded-lg relative">
+      <div 
+        ref={certificateRef} 
+        className="max-w-5xl mx-auto bg-cream p-8 shadow-lg rounded-lg border border-gray-300 relative" // Apply light cream background and border
+        style={{ backgroundColor: '#FAF3E0' }} // Adjust the background color to light cream
+      >
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-gray-600 hover:text-gray-800"
         >
           ✕
         </button>
+        
         {/* Header Section with Logo and Titles */}
         <div className="text-center mb-8 space-y-2">
           <div className="flex justify-center mb-4">
@@ -103,7 +108,6 @@ const CertificateDetails = ({ certificate, onClose }) => {
           <p className="font-semibold">Duqa Magaalada ee Muqdisho</p>
           <p>Mayor of Mogadishu</p>
           <p className="font-semibold">{certificate.mayorName}</p>
-          
         </div>
 
         {/* Add the Download PDF button */}

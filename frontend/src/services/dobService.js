@@ -90,7 +90,7 @@ export const fetchPendingDobRecords = async () => {
 
 export const fetchBirthRecordDetails = async (id) => {
   try {
-    const response = await axios.get(`${DOB_API_URL}//${id}`); // Adjust the endpoint as needed
+    const response = await axios.get(`${DOB_API_URL}/${id}`); // Adjust the endpoint as needed
     return response.data; // Return the data from the response
   } catch (error) {
     console.error('Error fetching birth record details:', error);
@@ -117,5 +117,26 @@ export const fetchTotalApprovedDobRecords = async () => {
   } catch (error) {
     console.error("Error fetching total approved birth records:", error);
     throw error; // Throw the error to be handled by the caller
+  }
+};
+// Fetch total male birth records
+export const fetchTotalMaleBirthRecords = async () => {
+  try {
+    const response = await axios.get(`${DOB_API_URL}/total-male`);
+    return response.data; // Return the count of male births
+  } catch (error) {
+    console.error("Error fetching total male birth records:", error);
+    throw error; // Rethrow the error for further handling
+  }
+};
+
+// Fetch total female birth records
+export const fetchTotalFemaleBirthRecords = async () => {
+  try {
+    const response = await axios.get(`${DOB_API_URL}/total-female`);
+    return response.data; // Return the count of female births
+  } catch (error) {
+    console.error("Error fetching total female birth records:", error);
+    throw error; // Rethrow the error for further handling
   }
 };

@@ -278,6 +278,7 @@ const handleBlurValidation = (field, value) => {
                     if (e.key >= '0' && e.key <= '9') {
                       e.preventDefault();
                     }
+                    toast.error("Number is not allowed as Name")
                   }}
                   placeholder="Full Name"
                   className="px-4 py-2 border rounded-lg"
@@ -316,6 +317,7 @@ const handleBlurValidation = (field, value) => {
                     if (e.key >= '0' && e.key <= '9') {
                       e.preventDefault();
                     }
+                    toast.error("Number is not allowed as cause of death")
                   }}
                   placeholder="Mother's Name"
                   className="px-4 py-2 border rounded-lg"
@@ -337,6 +339,12 @@ const handleBlurValidation = (field, value) => {
                   value={formData.occupation}
                   onChange={(e) => handleInputChange('occupation', e.target.value)}
                   onBlur={() => handleBlurValidation('occupation', formData.occupation)}
+                  onKeyDown={(e) => {
+                    if (e.key >= '0' && e.key <= '9') {
+                      e.preventDefault();
+                    }
+                    toast.error("Number is not allowed as Occupation")
+                  }}
                   placeholder="Occupation"
                   className="px-4 py-2 border rounded-lg"
                 />
@@ -448,12 +456,12 @@ const handleBlurValidation = (field, value) => {
             isDeathRecord={false} 
           />
         )}
-        {showCertificateModal && viewRecord && (
+        {/* {showCertificateModal && viewRecord && (
           <CertificateDetails
             certificate={viewRecord}
             onClose={() => setShowCertificateModal(false)}
           />
-        )}
+        )} */}
       </div>
     </DashboardLayout>
   );

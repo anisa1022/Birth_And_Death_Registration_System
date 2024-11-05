@@ -3,7 +3,7 @@ import { MapPin } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { loginUser } from '../services/userService';
 import { useUser } from '../contexts/UserContext';
-
+import systemLogo from "../assets/systemLogo.jpg"
 export default function Login() {
     const [formData, setFormData] = useState({
         email: '',
@@ -45,11 +45,11 @@ export default function Login() {
                 <div className="relative hidden lg:block lg:w-1/2">
                     <div className="absolute inset-0 bg-gradient-to-br from-black/30 to-black/10 z-10" />
                     <img
-                        src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=1000"
+                        src={systemLogo}                       
                         alt="Fashion"
                         className="w-full h-full object-cover"
                     />
-                    <div className="absolute inset-0 flex items-center justify-center z-20">
+                    {/* <div className="absolute inset-0 flex items-center justify-center z-20">
                         <div className="text-white text-center p-8">
                             <div className="relative w-80 h-80">
                                 <div className="absolute inset-0 border-4 border-white/50 rounded-full animate-[spin_20s_linear_infinite]" />
@@ -60,7 +60,7 @@ export default function Login() {
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </div> */}
                 </div>
 
                 {/* Right Side - Login Form */}

@@ -228,6 +228,80 @@ export const getTotalApprovedDodRecords = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+ // Adjust the path according to your project structure
+
+export const fetchTotalMaleDeathRecords = async (req, res) => {
+  try {
+    const count = await Dod.aggregate([
+      {
+        $lookup: {
+          from: 'dobs', // Name of the Dob collection
+          localField: 'dobId', // Field in Dod that references Dob
+          foreignField: '_id', // Field in Dob that is referenced
+          as: 'dobDetails', // Name of the array where matched Dob records will be stored
+        },
+      },
+      {
+        $unwind: '$dobDetails', // Deconstructs the array to create a separate document for each element
+      },
+      {
+        $match: { 'dobDetails.gender': 'Male' }, // Filter by male gender
+      },
+      {
+        $count: 'count', // Count the resulting documents
+      },
+    ]);
+
+    // If no male deaths are found, return 0
+    const maleDeathCount = count.length > 0 ? count[0].count : 0;
+    res.status(200).json({ count: maleDeathCount });
+  } catch (error) {
+    console.error("Error in fetchTotalMaleDeathRecords:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// export const fetchTotalFemaleDeathRecords = async (req, res) => {
+//   try {
+//     const count = await Dod.countDocuments({ gender: 'Female' }); // Assuming 'gender' field holds the value 'Female'
+//     res.status(200).json({ count });
+//   } catch (error) {
+//     console.error("Error in fetchTotalFemaleDeathRecords:", error);
+//     res.status(500).json({ message: error.message });
+//   }
+// };
+
+export const fetchTotalFemaleDeathRecords = async (req, res) => {
+  try {
+    const count = await Dod.aggregate([
+      {
+        $lookup: {
+          from: 'dobs', // Name of the Dob collection
+          localField: 'dobId', // Field in Dod that references Dob
+          foreignField: '_id', // Field in Dob that is referenced
+          as: 'dobDetails', // Name of the array where matched Dob records will be stored
+        },
+      },
+      {
+        $unwind: '$dobDetails', // Deconstructs the array to create a separate document for each element
+      },
+      {
+        $match: { 'dobDetails.gender': 'Female' }, // Filter by female gender
+      },
+      {
+        $count: 'count', // Count the resulting documents
+      },
+    ]);
+
+    // If no female deaths are found, return 0
+    const femaleDeathCount = count.length > 0 ? count[0].count : 0;
+    res.status(200).json({ count: femaleDeathCount });
+  } catch (error) {
+    console.error("Error in fetchTotalFemaleDeathRecords:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
 
 
 

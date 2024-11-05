@@ -6,7 +6,8 @@ import toast, { Toaster } from 'react-hot-toast';
 import { fetchPendingDodRecords, deleteDodRecord, createDodRecord, updateDodRecord ,getDodRecordById , fetchDodRecordDetails} from '../services/dodService';
 import { getAllDistricts } from '../services/districtService';
 import { getAllDobRecords } from '../services/dobService';
-import DeathCertificateGenerator from '../components/DeathCertificate.jsx';
+import Select from 'react-select';
+// import DeathCertificateGenerator from '../components/DeathCertificate.jsx';
 
 export default function DeathRegistration() {
   const [showForm, setShowForm] = useState(false);
@@ -169,37 +170,37 @@ export default function DeathRegistration() {
     });
     setIsPaymentModalVisible(true);
   };
-  const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    const options = { year: 'numeric', month: '2-digit', day: '2-digit' };
-    return date.toLocaleDateString('en-US', options);
-  };
-  const handleViewRecordClick = async (record) => {
-    try {
-      const dodDetails = await fetchDodRecordDetails(record._id);
-      console.log('Dod Details:', dodDetails);  
-      setSelectedRecord({ 
-        fullName: dodDetails.fullName || 'N/A',
-        dateOfBirth: formatDate(dodDetails.dateOfBirth) || 'N/A',
-        placeOfBirth: dodDetails.placeOfDeath || 'N/A', 
-        idNumber: dodDetails.dobSequenceID || 'N/A',    
-        gender: dodDetails.gender || 'N/A',
-        address: dodDetails.address || 'N/A',
-        motherName: dodDetails.motherName || 'N/A',
-        dateOfIssue: formatDate(dodDetails.dateOfDeath) || 'N/A', 
-        photo: dodDetails.image || '/placeholder.svg',
-        mayorName: 'Cumar Maxamuud Maxamed', 
-        causeOfDeath: dodDetails.causeOfDeath || 'N/A', 
-        placeOfDeath: dodDetails.placeOfDeath || 'N/A', 
-      });
+  // const formatDate = (dateString) => {
+  //   if (!dateString) return 'N/A';
+  //   const date = new Date(dateString);
+  //   const options = { year: 'numeric', month: '2-digit', day: '2-digit' };
+  //   return date.toLocaleDateString('en-US', options);
+  // };
+  // const handleViewRecordClick = async (record) => {
+  //   try {
+  //     const dodDetails = await fetchDodRecordDetails(record._id);
+  //     console.log('Dod Details:', dodDetails);  
+  //     setSelectedRecord({ 
+  //       fullName: dodDetails.fullName || 'N/A',
+  //       dateOfBirth: formatDate(dodDetails.dateOfBirth) || 'N/A',
+  //       placeOfBirth: dodDetails.placeOfDeath || 'N/A', 
+  //       idNumber: dodDetails.dobSequenceID || 'N/A',    
+  //       gender: dodDetails.gender || 'N/A',
+  //       address: dodDetails.address || 'N/A',
+  //       motherName: dodDetails.motherName || 'N/A',
+  //       dateOfIssue: formatDate(dodDetails.dateOfDeath) || 'N/A', 
+  //       photo: dodDetails.image || '/placeholder.svg',
+  //       mayorName: 'Cumar Maxamuud Maxamed', 
+  //       causeOfDeath: dodDetails.causeOfDeath || 'N/A', 
+  //       placeOfDeath: dodDetails.placeOfDeath || 'N/A', 
+  //     });
       
   
-      setShowCertificateModal(true); // Open the certificate modal
-    } catch (error) {
-      console.error("Error fetching death record:", error);
-    }
-  };
+  //     setShowCertificateModal(true); // Open the certificate modal
+  //   } catch (error) {
+  //     console.error("Error fetching death record:", error);
+  //   }
+  // };
   const handleEditRecord = (record) => {
     setNewRecord({
       dob: record.dob._id,
@@ -243,7 +244,7 @@ export default function DeathRegistration() {
             <div className="md:col-span-2 bg-white rounded-xl shadow-sm p-6">
               <h3 className="text-lg font-semibold mb-4">{editingId ? "Edit Death Record" : "Add New Death Record"}</h3>
               <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <select
+                {/* <select
                   name="dob"
                   value={newRecord.dob}
                   onChange={handleInputChange}
@@ -255,7 +256,18 @@ export default function DeathRegistration() {
                       {dobRecord.fullName}
                     </option>
                   ))}
-                </select>
+                </select> */}
+                <Select
+                  name="dob"
+                  value={dobRecords.find(dobRecord => dobRecord._id === newRecord.dob) || null}
+                  onChange={(selectedOption) => setNewRecord((prev) => ({ ...prev, dob: selectedOption.value }))}
+                  options={dobRecords.map(dobRecord => ({ value: dobRecord._id, label: dobRecord.fullName }))}
+                  placeholder="Select Full Name (based on birth record)"
+                  isClearable
+                  isSearchable
+                  className="basic-single"
+                  classNamePrefix="select"
+                />
                 <input
                   type="date"
                   name="dateOfDeath"
@@ -270,6 +282,12 @@ export default function DeathRegistration() {
                   onChange={handleInputChange}
                   placeholder="Cause of Death"
                   className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onKeyDown={(e) => {
+                    if (e.key >= '0' && e.key <= '9') {
+                      e.preventDefault();
+                    }
+                    toast.error("Number is not allowed as Name")
+                  }}
                 />
                 <select
                   name="placeOfDeath"
@@ -356,12 +374,12 @@ export default function DeathRegistration() {
                         >
                           Pay
                         </button>
-                        <button
+                        {/* <button
                           onClick={() => handleViewRecordClick(record)}
                           className="p-1 text-blue-600 hover:text-blue-900"
                         >
                           <Eye className="w-4 h-4" />
-                        </button>
+                        </button> */}
                         <button
                           onClick={() => handleEditRecord(record)}
                           className="p-1 text-blue-600 hover:text-blue-900"
@@ -392,12 +410,12 @@ export default function DeathRegistration() {
           />
         )}
 
-        {showCertificateModal && selectedRecord && (
+        {/* {showCertificateModal && selectedRecord && (
             <DeathCertificateGenerator
                 certificate={selectedRecord}
                 onClose={() => setShowCertificateModal(false)}
             />
-        )}
+        )} */}
 
       </div>
     </DashboardLayout>

@@ -1,6 +1,5 @@
 import { useState } from 'react'; 
 import { 
-  Search,
   Globe,
   ChevronDown,
   LayoutDashboard,
@@ -11,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useLocation, Link } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
+import logoo from '../assets/logoo.png'; // Adjust the import path based on your file structure
 
 export default function DashboardLayout({ children }) {
   const [isRegistrationOpen, setIsRegistrationOpen] = useState(true);
@@ -25,14 +25,10 @@ export default function DashboardLayout({ children }) {
       {/* Sidebar */}
       <div className="w-64 bg-white border-r">
         {/* Logo */}
-        <div className="h-16 flex items-center px-6 border-b">
-          <Link to="/" className="flex items-center gap-2">
-            <Globe className="h-6 w-6 text-blue-600" />
-            <span className="font-bold text-xl">
-              <span className="text-gray-900">Free</span>
-              <span className="text-blue-600">Dash</span>
-            </span>
-          </Link>
+        <div className="h-16 flex items-center justify-center border-b">
+          <img src={logoo} alt="Logo" className="h-10 mr-2" /> {/* Adjust height as needed */}
+          <span className="font-bold text-xl text-blue-700">B&D </span>
+          <span className="pt-10 font-bold text-xl text-gray-900">Registration  </span>
         </div>
 
         {/* Navigation */}
@@ -139,6 +135,16 @@ export default function DashboardLayout({ children }) {
               </div>
             )}
           </div>
+
+          {/* Logout Section */}
+          <div className="mt-auto">
+            <Link
+              to="/logout" // Adjust the path as needed
+              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100`}
+            >
+              <span className="font-medium flex-1 text-left">Logout</span>
+            </Link>
+          </div>
         </nav>
       </div>
 
@@ -146,15 +152,9 @@ export default function DashboardLayout({ children }) {
       <div className="flex-1 flex flex-col">
         {/* Header */}
         <header className="h-16 bg-white border-b flex items-center justify-between px-6">
+          {/* Removed Search Section */}
           <div className="flex items-center gap-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <input
-                type="search"
-                placeholder="Search"
-                className="pl-10 pr-4 py-2 border rounded-lg w-64 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
+            {/* Other header content (if any) */}
           </div>
 
           <div className="flex items-center gap-4">

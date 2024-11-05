@@ -206,19 +206,30 @@ export const getPendingDobRecords = async (req, res) => {
 
 export const getBirthRecordDetails = async (req, res) => {
   try {
-    const {  id } = req.params;
+    const { id } = req.params;
 
+    // Use nested population to fetch `discName` of `address` and `placeOfBirth`
     const dobRecord = await Dob.findById(id)
-      .populate('placeOfBirth address', 'discName')
+      .populate({
+        path: 'placeOfBirth',
+        model: District, // Assuming placeOfBirth references District collection
+        select: 'discName', // Select only the discName field
+      })
+      .populate({
+        path: 'address',
+        model: District, // Assuming address references District collection
+        select: 'discName', // Select only the discName field
+      })
       .select('-__v'); // Exclude version key
 
     if (!dobRecord) {
-      return res.status(404).json({ message: "Record not found" });
+      return res.status(404).json({ message: 'Record not found' });
     }
 
+    // Format the response to include `discName` values
     const formattedRecord = {
       fullName: dobRecord.fullName,
-      image : dobRecord.image,
+      image: dobRecord.image,
       dateOfBirth: dobRecord.dob.toISOString().split('T')[0], // Format to YYYY-MM-DD
       placeOfBirth: dobRecord.placeOfBirth ? dobRecord.placeOfBirth.discName : 'N/A',
       idNumber: dobRecord.dobId,
@@ -229,7 +240,7 @@ export const getBirthRecordDetails = async (req, res) => {
       dateOfIssue: dobRecord.dateOfIssue.toISOString().split('T')[0],
       occupation: dobRecord.occupation || 'N/A',
       photo: dobRecord.image || '/default-image.png', // Fallback image if not provided
-      mayorName: 'Cumar Maxamuud Maxamed' // Static value for now
+      mayorName: 'Cumar Maxamuud Maxamed', // Static value for now
     };
 
     res.status(200).json(formattedRecord);
@@ -261,3 +272,26 @@ export const getTotalApprovedDobRecords = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+
+export const fetchTotalMaleBirthRecords = async (req,res) => {
+  try{
+    const count = await Dob.countDocuments({ gender: 'Male' }); // Assuming 'gender' field holds the value 'Male'
+    res.status(200).json({count });
+  } catch (error) {
+    console.error("Error in fetchTotalMaleBirthRecords:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const fetchTotalFemaleBirthRecords = async (req,res) => {
+  try {
+    const count = await Dob.countDocuments({ gender: 'Female' }); // Assuming 'gender' field holds the value 'Female'
+    res.status(200).json({count });
+  } catch (error) {
+    console.error("Error in fetchTotalFemaleBirthRecords:", error);
+    res.status(500).json({ message: error.message });
+  }
+  
+};
+
