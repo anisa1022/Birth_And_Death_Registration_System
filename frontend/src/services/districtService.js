@@ -55,3 +55,15 @@ export const deleteDistrict = async (id) => {
     throw error.response?.data || { message: 'Failed to delete district' };
   }
 };
+
+
+export const getBirthsAndDeathsByDistrict = async () => {
+  try {
+    const response = await axios.get(`${API_URL}/births-deaths-by-district`);
+    return response.data; // This will return an object containing births and deaths
+  } catch (error) {
+    console.error("Error fetching births and deaths by district:", error);
+    console.error('Error details:', error.response?.data || error.message);
+    throw error; // Re-throw the error to handle it in the component
+  }
+};

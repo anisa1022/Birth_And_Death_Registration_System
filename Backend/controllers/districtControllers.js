@@ -1,6 +1,7 @@
-// import Dod from '../models/dodModel.js';
+import Dod from '../models/dodModel.js';
 import District from '../models/districtsModel.js';
-// import Dob from '../models/dobModel.js'; 
+import Dob from '../models/dobModel.js'; 
+import mongoose from 'mongoose';
 
 // Create a new district
 export const createDistrict = async (req, res) => {
@@ -73,21 +74,61 @@ export const getBirthsAndDeathsByDistrict = async (req, res) => {
   try {
     const births = await Dob.aggregate([
       {
+        $addFields: {
+          placeOfBirth: { $toObjectId: "$placeOfBirth" } // Convert placeOfBirth to ObjectId
+        }
+      },
+      {
+        $lookup: {
+          from: "districts", // Replace with the actual name of your districts collection
+          localField: "placeOfBirth",
+          foreignField: "_id",
+          as: "districtInfo"
+        }
+      },
+      {
+        $unwind: {
+          path: "$districtInfo",
+          preserveNullAndEmptyArrays: true // Optional: if you want to keep records without matching districts
+        }
+      },
+      {
         $group: {
-          _id: "$placeOfBirth", // Group by placeOfBirth
+          _id: "$districtInfo.discName", // Assuming discName holds the name of the district
           totalBirths: { $sum: 1 }
         }
       }
     ]);
+    console.log(births);
 
     const deaths = await Dod.aggregate([
       {
+        $addFields: {
+          placeOfDeath: { $toObjectId: "$placeOfDeath" } // Convert placeOfDeath to ObjectId
+        }
+      },
+      {
+        $lookup: {
+          from: "districts", // Replace with the actual name of your districts collection
+          localField: "placeOfDeath",
+          foreignField: "_id",
+          as: "districtInfo"
+        }
+      },
+      {
+        $unwind: {
+          path: "$districtInfo",
+          preserveNullAndEmptyArrays: true // Optional: if you want to keep records without matching districts
+        }
+      },
+      {
         $group: {
-          _id: "$placeOfDeath", // Group by placeOfDeath
+          _id: "$districtInfo.discName", // Assuming discName holds the name of the district
           totalDeaths: { $sum: 1 }
         }
       }
     ]);
+    console.log(deaths);
 
     res.status(200).json({ births, deaths });
   } catch (error) {

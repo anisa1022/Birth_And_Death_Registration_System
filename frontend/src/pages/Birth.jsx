@@ -277,8 +277,9 @@ const handleBlurValidation = (field, value) => {
                   onKeyDown={(e) => {
                     if (e.key >= '0' && e.key <= '9') {
                       e.preventDefault();
+                      toast.error("only Text is allowed")
                     }
-                    toast.error("Number is not allowed as Name")
+                    
                   }}
                   placeholder="Full Name"
                   className="px-4 py-2 border rounded-lg"
@@ -316,8 +317,9 @@ const handleBlurValidation = (field, value) => {
                   onKeyDown={(e) => {
                     if (e.key >= '0' && e.key <= '9') {
                       e.preventDefault();
+                      toast.error("only Text is allowed")
                     }
-                    toast.error("Number is not allowed as cause of death")
+                    
                   }}
                   placeholder="Mother's Name"
                   className="px-4 py-2 border rounded-lg"
@@ -342,8 +344,9 @@ const handleBlurValidation = (field, value) => {
                   onKeyDown={(e) => {
                     if (e.key >= '0' && e.key <= '9') {
                       e.preventDefault();
+                      toast.error("only Text is allowed")
                     }
-                    toast.error("Number is not allowed as Occupation")
+                    
                   }}
                   placeholder="Occupation"
                   className="px-4 py-2 border rounded-lg"
@@ -431,9 +434,9 @@ const handleBlurValidation = (field, value) => {
                       <button onClick={() => handlePendingPaymentClick(record)} className="px-3 py-1 bg-green-500 text-white rounded-full mr-2">
                         Pay
                       </button>
-                      <button onClick={() => handleViewRecordClick(record)} className="text-blue-600 hover:text-blue-900 mr-2">
+                      {/* <button onClick={() => handleViewRecordClick(record)} className="text-blue-600 hover:text-blue-900 mr-2">
                         <Eye className="w-4 h-4" />
-                      </button>
+                      </button> */}
                       <button onClick={() => handleEditRecord(record)} className="text-blue-600 hover:text-blue-900 mr-2">
                         <Edit className="w-4 h-4" />
                       </button>

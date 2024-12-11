@@ -268,6 +268,7 @@ export default function DeathRegistration() {
                   className="basic-single"
                   classNamePrefix="select"
                 />
+
                 <input
                   type="date"
                   name="dateOfDeath"
@@ -285,8 +286,9 @@ export default function DeathRegistration() {
                   onKeyDown={(e) => {
                     if (e.key >= '0' && e.key <= '9') {
                       e.preventDefault();
+                      toast.error("only Text is allowed")
                     }
-                    toast.error("Number is not allowed as Name")
+                    
                   }}
                 />
                 <select

@@ -13,6 +13,9 @@ import {
   fetchTotalFemaleDeathRecords,
 } from '../services/dodService';
 import { Users, DollarSign, FileText, Globe } from 'lucide-react';
+import DistrictBirthRates from '../components/DistrictBirthRates';
+import DistrictDeathRates from '../components/DistrictDeathRates';
+import { getBirthsAndDeathsByDistrict } from '../services/districtService'; // Import the service to fetch district data
 
 export default function Dashboard() {
   const [totalBirths, setTotalBirths] = useState(0);
@@ -24,39 +27,47 @@ export default function Dashboard() {
   const [totalMaleDeaths, setTotalMaleDeaths] = useState(0);
   const [totalFemaleDeaths, setTotalFemaleDeaths] = useState(0);
 
+  // State to store the birth and death data by district
+  const [districtData, setDistrictData] = useState({ births: [], deaths: [] });
+
   useEffect(() => {
     const fetchTotals = async () => {
       try {
-        const totalDobResponse = await fetchTotalDobRecords(); // Assuming this returns just the count directly
+        const totalDobResponse = await fetchTotalDobRecords();
         const totalApprovedDobResponse = await fetchTotalApprovedDobRecords();
-        const totalDodResponse = await fetchTotalDodRecords(); 
+        const totalDodResponse = await fetchTotalDodRecords();
         const totalApprovedDodResponse = await fetchTotalApprovedDodRecords();
         const maleBirthsResponse = await fetchTotalMaleBirthRecords();
         const femaleBirthsResponse = await fetchTotalFemaleBirthRecords();
         const maleDeathsResponse = await fetchTotalMaleDeathRecords();
         const femaleDeathsResponse = await fetchTotalFemaleDeathRecords();
-  
-        // Assuming totalDobResponse, totalDodResponse, etc., return counts directly.
-        setTotalBirths(totalDobResponse); // Access count from the response
+
+        setTotalBirths(totalDobResponse);
         setTotalApprovedBirths(totalApprovedDobResponse);
         setTotalDeaths(totalDodResponse);
         setTotalApprovedDeaths(totalApprovedDodResponse);
-        setTotalMaleBirths(maleBirthsResponse.count); // Access count for male births
-        setTotalFemaleBirths(femaleBirthsResponse.count); // Access count for female births
-        setTotalMaleDeaths(maleDeathsResponse.count); // Access count for male deaths
-        setTotalFemaleDeaths(femaleDeathsResponse.count); // Access count for female deaths
+        setTotalMaleBirths(maleBirthsResponse.count);
+        setTotalFemaleBirths(femaleBirthsResponse.count);
+        setTotalMaleDeaths(maleDeathsResponse.count);
+        setTotalFemaleDeaths(femaleDeathsResponse.count);
+
+        // Fetch the district-specific data for births and deaths
+        const birthAndDeathData = await getBirthsAndDeathsByDistrict();
+        setDistrictData({
+          births: birthAndDeathData.births,
+          deaths: birthAndDeathData.deaths,
+        });
       } catch (error) {
-        console.error("Error fetching totals:", error);
+        console.error('Error fetching totals:', error);
       }
     };
-  
+
     fetchTotals();
   }, []);
-  
 
   return (
     <DashboardLayout>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* Total Birth Records Card */}
         <div className="bg-pink-200 rounded-xl shadow-sm p-6 relative overflow-hidden">
           <div className="flex items-center justify-between mb-4">
@@ -135,30 +146,16 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Total Male Death Records Card */}
-        <div className="bg-teal-200 rounded-xl shadow-sm p-6 relative overflow-hidden">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-2xl font-bold">{totalMaleDeaths}</h3>
-              <p className="text-sm text-gray-500">Total Male Death Records</p>
-            </div>
-            <div className="text-gray-500">
-              <FileText className="h-6 w-6" />
-            </div>
-          </div>
+        {/* Render District Birth Rates Chart */}
+        <div className="col-span-1 md:col-span-2 lg:col-span-2 bg-white rounded-xl shadow-sm p-6">
+          <h3 className="text-lg font-semibold mb-4">District Birth Rates</h3>
+          <DistrictBirthRates birthData={districtData.births} />
         </div>
 
-        {/* Total Female Death Records Card */}
-        <div className="bg-indigo-200 rounded-xl shadow-sm p-6 relative overflow-hidden">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-2xl font-bold">{totalFemaleDeaths}</h3>
-              <p className="text-sm text-gray-500">Total Female Death Records</p>
-            </div>
-            <div className="text-gray-500">
-              <FileText className="h-6 w-6" />
-            </div>
-          </div>
+        {/* Render District Death Rates Chart */}
+        <div className="col-span-1 md:col-span-2 lg:col-span-2 bg-white rounded-xl shadow-sm p-6">
+          <h3 className="text-lg font-semibold mb-4">District Death Rates</h3>
+          <DistrictDeathRates deathData={districtData.deaths} />
         </div>
       </div>
     </DashboardLayout>
